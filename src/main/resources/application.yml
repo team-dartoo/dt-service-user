@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: userService
+  datasource:
+    url:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      dialect: org.hibernate.dialect.MySQL8Dialect
+      format_sql: true
+      hibernate.jdbc.time_zone: UTC
+  jackson:
+    time-zone: UTC
+
+app:
+  jwt:
+    issuer: "Dartoo"
+    access-secret: ${JWT_ACCESS_SECRET}
+    refresh-secret: ${JWT_REFRESH_SECRET}
+    refresh-pepper: ${JWT_REFRESH_PEPPER}
+    access-ttl-seconds: 900
+    refresh-ttl-seconds: 1209600
