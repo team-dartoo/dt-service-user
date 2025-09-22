@@ -2,6 +2,7 @@ package dartoo.accountService.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.Instant;
 
@@ -23,5 +24,7 @@ public class UserPreference {
     private Boolean pushEnabled;
     private Boolean emailEnabled;
     private Integer alertDelay;
+
+    @LastModifiedDate
     private Instant updatedAt;
 }
