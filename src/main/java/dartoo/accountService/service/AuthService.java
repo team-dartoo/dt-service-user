@@ -109,8 +109,10 @@ public class AuthService {
         String newAccess =  tokenService.createAccessToken(email, userEntity.getNickname(), now);
         //앱 재실행 -> 자동로그인 -> 만료 시간이 now + refreshTTL
         //단순 회전 -> 절대 만료 시간 유지
-        String newRefresh = isRestart ? tokenService.createRefreshTokenFixed(email, deviceId, newExpire)
-                : tokenService.createRefreshToken(email, deviceId, now);
+        String newRefresh = isRestart
+                ? tokenService.createRefreshToken(email, deviceId, now)              // restart 하면 만료 시간 연장
+                : tokenService.createRefreshTokenFixed(email, deviceId, newExpire);  // 그렇지 않으면 절대 만료 유지
+
         //새 RefreshToken 저장
         RefreshToken newRt = RefreshToken.builder()
                 .userEntity(userEntity)
