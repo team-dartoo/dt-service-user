@@ -38,7 +38,7 @@ public class TokenService {
      * 식으로 주소를 다르게 한 다음에, 이를 바탕으로 refresh함수에서 refreshToken을 다른 방식으로 발급하도록 변경
      * */
 
-    //Refresh Token 발급
+    //일반적인 Refresh Token 발급
     public String createRefreshToken(String email, String deviceId, Instant now){
         return Jwts.builder()
                 .setIssuer(cfg.getIssuer())
@@ -50,6 +50,7 @@ public class TokenService {
                 .compact();
     }
 
+    //만료 시간을 fix해 놓는 재발급
     public String createRefreshTokenFixed(String email, String deviceId, Instant fixedExp){
         Instant now = Instant.now();
         return Jwts.builder()

@@ -73,6 +73,7 @@ public class AuthService {
     //자동 로그인 구현 여부에 따라 분기
     //isRestart = true; 자동 로그인 상황
     //isRestart = false; 일반 토큰 갱신 상황
+    @Transactional
     public TokenResponseDto refresh(String refreshToken, boolean isRestart, HttpServletResponse response){
         Instant now = Instant.now();
         if(refreshToken==null || refreshToken.isBlank()){
@@ -106,9 +107,10 @@ public class AuthService {
 
         //새 AccessToken과 RefreshToken을 발급
         String newAccess =  tokenService.createAccessToken(email, userEntity.getNickname(), now);
-        String newRefresh = isRestart ? tokenService.createRefreshTokenFixed(email,deviceId,newExpire)
-                : tokenService.createRefreshToken(email,deviceId,now);
-
+        //앱 재실행 -> 자동로그인 -> 만료 시간이 now + refreshTTL
+        //단순 회전 -> 절대 만료 시간 유지
+        String newRefresh = isRestart ? tokenService.createRefreshTokenFixed(email, deviceId, newExpire)
+                : tokenService.createRefreshToken(email, deviceId, now);
         //새 RefreshToken 저장
         RefreshToken newRt = RefreshToken.builder()
                 .userEntity(userEntity)
@@ -123,7 +125,8 @@ public class AuthService {
         //RefreshToken을 쿠키에 담기
         attachRefreshCookie(response,newRefresh,newExpire);
 
-        return new TokenResponseDto(newAccess,cfg.getAccessTtlSeconds(),newRefresh,cfg.getRefreshTtlSeconds());
+        long refreshTtlLeft = Math.max(0, newExpire.getEpochSecond() - now.getEpochSecond());
+        return new TokenResponseDto(newAccess,cfg.getAccessTtlSeconds(),newRefresh, refreshTtlLeft);
     }
 
     //RefreshToken을 쿠키에 추가 - HttpOnly + Secure
