@@ -44,7 +44,7 @@ public class AuthService {
 
         //이미 만료된 RT 삭제
         refreshTokenRepository.deleteAllByUserEntityAndExpiredAtBefore(user,now);
-        //기존에 활성화된 RefreshToken 삭제
+        //기존에 활성화된 RefreshToken revoke하기
         refreshTokenRepository.findAllByUserEntityAndRevokedAtIsNullAndExpiredAtAfter(user,now)
                 .forEach(rt->{rt.revoke(now); refreshTokenRepository.save(rt);});
 

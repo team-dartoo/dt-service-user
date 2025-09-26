@@ -3,6 +3,7 @@ package dartoo.accountService.domain;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 
@@ -12,6 +13,7 @@ import java.time.Instant;
 @Getter
 @Builder
 @Setter
+@EntityListeners(AuditingEntityListener.class)
 public class UserPreference {
     @Id
     private Long userId;

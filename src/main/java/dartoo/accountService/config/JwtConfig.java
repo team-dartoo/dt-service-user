@@ -22,6 +22,7 @@ public class JwtConfig {
     private long accessTtlSeconds;
     private long refreshTtlSeconds;
 
+    //SecretKey - JWT 서명용 키를 만들 때 쓰는 객체
     private SecretKey accessKey;
     private SecretKey refreshKey;
 
