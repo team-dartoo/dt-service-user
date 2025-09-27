@@ -1,6 +1,7 @@
 package dartoo.accountService.service;
 
 import dartoo.accountService.config.JwtConfig;
+import dartoo.accountService.domain.Role;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import lombok.RequiredArgsConstructor;
@@ -15,13 +16,14 @@ public class TokenService {
     private final JwtConfig cfg;
 
     //Access Token 발급
-    public String createAccessToken(String email, String nickname, Instant now){
+    public String createAccessToken(String email, String nickname, Instant now, Role role) {
         return Jwts.builder()
                 .setIssuer(cfg.getIssuer())
                 .setSubject(email) //변경 불가능하니까 이메일로.
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(now.plusSeconds(cfg.getAccessTtlSeconds())))
                 .claim("nickname",nickname)
+                .claim("roles",role)
                 .signWith(cfg.getAccessKey(), SignatureAlgorithm.HS256)
                 .compact();
     }

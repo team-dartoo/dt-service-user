@@ -48,7 +48,7 @@ public class AuthService {
         refreshTokenRepository.findAllByUserEntityAndRevokedAtIsNullAndExpiredAtAfter(user,now)
                 .forEach(rt->{rt.revoke(now); refreshTokenRepository.save(rt);});
 
-        String accessToken = tokenService.createAccessToken(user.getUserEmail(),user.getNickname(),now);
+        String accessToken = tokenService.createAccessToken(user.getUserEmail(),user.getNickname(),now,user.getRole());
         String refreshToken = tokenService.createRefreshToken(user.getUserEmail(),did,now);
         Instant expire = parseAndValidateRefresh(refreshToken).getExpiration().toInstant();
 
@@ -106,7 +106,7 @@ public class AuthService {
         Instant newExpire = isRestart ? now.plusSeconds(cfg.getRefreshTtlSeconds()) : rt.getExpiredAt();
 
         //새 AccessToken과 RefreshToken을 발급
-        String newAccess =  tokenService.createAccessToken(email, userEntity.getNickname(), now);
+        String newAccess =  tokenService.createAccessToken(email, userEntity.getNickname(), now, userEntity.getRole());
         //앱 재실행 -> 자동로그인 -> 만료 시간이 now + refreshTTL
         //단순 회전 -> 절대 만료 시간 유지
         String newRefresh = isRestart
