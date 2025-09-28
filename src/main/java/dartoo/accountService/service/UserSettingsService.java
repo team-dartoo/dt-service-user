@@ -54,7 +54,7 @@ public class UserSettingsService {
                 });
         useragreed.setTosAgreed(settings.getTosAgreed());
         useragreed.setTosVersion(settings.getTosVersion());
-        useragreed.setTosVersion(settings.getTosVersion());
+        useragreed.setPrivacyVersion(settings.getPrivacyVersion());
         useragreed.setPrivacyAgreed(settings.getPrivacyAgreed());
         useragreed.setMarketingAgreed(settings.getMarketingAgreed());
         return new AgreedSettingsDto(

@@ -49,11 +49,8 @@ public class SecurityConfig {
     //클라이언트가 액세스 토큰을 들고 왔을 때 해독
     @Bean
     JwtDecoder jwtDecoder(JwtConfig cfg) {
-        var key = new javax.crypto.spec.SecretKeySpec(
-                java.util.Base64.getDecoder().decode(cfg.getAccessSecret()), "HmacSHA256"
-        );
         return org.springframework.security.oauth2.jwt.NimbusJwtDecoder
-                .withSecretKey(key)
+                .withSecretKey(cfg.getAccessKey())
                 .macAlgorithm(org.springframework.security.oauth2.jose.jws.MacAlgorithm.HS256)
                 .build();
     }

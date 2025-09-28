@@ -35,7 +35,11 @@ public class JwtConfig {
     @Value("${app.jwt.refresh-ttl-seconds}")
     private long refreshTtlSeconds;
 
+<<<<<<< HEAD
 
+=======
+    //SecretKey - JWT 서명용 키를 만들 때 쓰는 객체
+>>>>>>> origin
     private SecretKey accessKey;
     private SecretKey refreshKey;
 
