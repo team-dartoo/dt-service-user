@@ -2,25 +2,39 @@ package dartoo.accountService.config;
 
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import io.jsonwebtoken.security.Keys;
 
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.util.HexFormat;
 
 @Component
 @Getter
 @Setter
-@ConfigurationProperties(prefix = "app.jwt")
 public class JwtConfig {
+    @Value("${app.jwt.issuer}")
     private String issuer;
+
+    @Value("${app.jwt.access-secret:#{null}}")
     private String accessSecret;
+
+    @Value("${app.jwt.refresh-secret:#{null}")
     private String refreshSecret;
+
+    @Value("${app.jwt.refresh-pepper:#{null}")
     private String refreshPepper;
+
+    @Value("${app.jwt.access-ttl-seconds}")
     private long accessTtlSeconds;
+
+    @Value("${app.jwt.refresh-ttl-seconds}")
     private long refreshTtlSeconds;
+
 
     private SecretKey accessKey;
     private SecretKey refreshKey;
@@ -30,11 +44,11 @@ public class JwtConfig {
         String accHex = accessSecret.trim();
         String refreshHex = refreshSecret.trim();
 
-        byte[] acc = HexFormat.of().parseHex(accHex);
-        byte[] ref =  HexFormat.of().parseHex(refreshHex);
+        byte[] acc = accHex.getBytes();
+        byte[] ref = refreshHex.getBytes();
 
-        accessKey = Keys.hmacShaKeyFor(acc);
-        refreshKey = Keys.hmacShaKeyFor(ref);
+        accessKey = new SecretKeySpec(acc, "HmacSHA256");
+        refreshKey = new SecretKeySpec(ref, "HmacSHA256");
     }
 }
 /*

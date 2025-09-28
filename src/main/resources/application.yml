@@ -1,14 +1,17 @@
+server:
+  port: 8081
+
 spring:
   application:
     name: userService
   datasource:
-    url:
+    url: ${DB_URL}
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     properties:
       dialect: org.hibernate.dialect.MySQL8Dialect
       format_sql: true
@@ -24,3 +27,16 @@ app:
     refresh-pepper: ${JWT_REFRESH_PEPPER}
     access-ttl-seconds: 900
     refresh-ttl-seconds: 1209600
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url.defaultZone: ${EUREKA_URL}
+
+logging:
+  level:
+    # Spring Security 전체에 대한 디버그 로그 활성화
+    org.springframework.security: DEBUG
+    # 웹 관련 로그도 함께 보면 좋음
+    org.springframework.web: DEBUG
