@@ -22,7 +22,7 @@ public class UserRequestDto {
     @NotNull(message = "생일은 필수 항목입니다", groups = {addGroup.class, updateGroup.class})
     private LocalDate birthday;
 
-    @NotBlank(groups = {addGroup.class}) @Size(min = 4)
+    @NotBlank(groups = {addGroup.class}) @Size(min = 8)
     private String password;
 
     @NotBlank(groups = {addGroup.class, updateGroup.class})
