@@ -4,6 +4,8 @@ import dartoo.accountService.config.JwtConfig;
 import dartoo.accountService.domain.RefreshToken;
 import dartoo.accountService.domain.UserEntity;
 import dartoo.accountService.dto.TokenResponseDto;
+import dartoo.accountService.error.ApiException;
+import dartoo.accountService.error.ErrorCode;
 import dartoo.accountService.repository.RefreshTokenRepository;
 import dartoo.accountService.repository.UserEntityRepository;
 import io.jsonwebtoken.Claims;
@@ -13,7 +15,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -25,6 +26,7 @@ import java.time.Instant;
 import java.util.HexFormat;
 import java.util.Optional;
 
+import static dartoo.accountService.error.ErrorCode.*;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @Service
@@ -40,7 +42,7 @@ public class AuthService {
     public TokenResponseDto loginIssue(String email, String did, String userAgent, HttpServletResponse response){
         Instant now = Instant.now();
 
-        UserEntity user = userEntityRepository.findByUserEmail(email).orElseThrow(()->new UsernameNotFoundException(email));
+        UserEntity user = userEntityRepository.findByUserEmail(email).orElseThrow(()->new ApiException(USER_NOT_FOUND));
 
         //이미 만료된 RT 삭제
         refreshTokenRepository.deleteAllByUserEntityAndExpiredAtBefore(user,now);
@@ -77,25 +79,25 @@ public class AuthService {
     public TokenResponseDto refresh(String refreshToken, boolean isRestart, HttpServletResponse response){
         Instant now = Instant.now();
         if(refreshToken==null || refreshToken.isBlank()){
-            throw new ResponseStatusException(UNAUTHORIZED,"invalid refresh token");
+            throw new ApiException(INVALID_REFRESH_TOKEN);
         }
         Claims claims = parseAndValidateRefresh(refreshToken);
         String email = claims.getSubject();
         String deviceId = Optional.ofNullable(claims.get("did", String.class))
-                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED,"invalid device id"));
+                .orElseThrow(() -> new ApiException(INVALID_DEVICE_ID));
 
 
         //사용자 + 토큰 조회
         UserEntity userEntity = userEntityRepository.findByUserEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED,"user not found"));
+                .orElseThrow(()->new ApiException(USER_NOT_FOUND));
         RefreshToken rt = refreshTokenRepository.findByUserEntityAndToken(userEntity,hashRt(refreshToken))
-                .orElseThrow(()-> new ResponseStatusException(UNAUTHORIZED, "refreshToken not found"));
+                .orElseThrow(()-> new ApiException(REFRESH_TOKEN_NOT_FOUND));
 
         //검증
         if (rt.getRotatedAt()!=null)
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "refresh already rotated");
+            throw new ApiException(REFRESH_TOKEN_ALREADY_ROTATED);
         if (rt.getExpiredAt().isBefore(now))
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "refresh already expired");
+            throw new ApiException(REFRESH_TOKEN_EXPIRED);
 
         //기존 Refresh Token 폐기 + 회전 표기
         rt.revoke(now);
@@ -161,7 +163,7 @@ public class AuthService {
 
         // 사용자 조회
         UserEntity user = userEntityRepository.findByUserEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "user not found"));
+                .orElseThrow(() -> new ApiException(USER_NOT_FOUND));
 
         // 해당 기기(did)의 모든 활성화된 Refresh Token 조회
         refreshTokenRepository.findAllByUserEntityAndDidAndRevokedAtIsNullAndExpiredAtAfter(user, did, now)
@@ -182,7 +184,7 @@ public class AuthService {
             byte[] out = mac.doFinal(raw.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(out); // 64 hex
         } catch (Exception e) {
-            throw new IllegalStateException("HMAC-SHA256 not available", e);
+            throw new ApiException(HMAC_256_NOT_AVAILABLE);
         }
     }
 
@@ -211,7 +213,7 @@ public class AuthService {
                     .parseClaimsJws(jwt)
                     .getBody();
         } catch (JwtException e) { //invalid한 JWT일 경우 401 반환
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid token");
+            throw new ApiException(INVALID_REFRESH_TOKEN);
         }
     }
 

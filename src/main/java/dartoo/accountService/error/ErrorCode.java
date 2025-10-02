@@ -7,8 +7,25 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 @Getter
 public enum ErrorCode {
-    PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST,  "현재 비밀번호가 일치하지 않습니다.");
+    //인증 관련
+    INVALID_DEVICE_ID(HttpStatus.UNAUTHORIZED, "유효하지 않은 기기 ID입니다."),
+    INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED,"유효하지 않은 리프레시 토큰입니다."),
+    REFRESH_TOKEN_ALREADY_ROTATED(HttpStatus.UNAUTHORIZED, "이미 회전된 리프레시 토큰입니다."),
+    REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "만료된 리프레시 토큰입니다."),
+    REFRESH_TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 존재하지 않습니다."),
+    //사용자 관련
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
+    USER_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 존재하는 사용자입니다"),
 
+    //비밀번호 관련
+    PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "현재 비밀번호가 일치하지 않습니다."),
+    SAME_PASSWORD(HttpStatus.BAD_REQUEST, "새 비밀번호가 현재 비밀번호와 일치합니다."),
+
+    //사용자 설정 관련
+    USER_AGREED_NOT_FOUND(HttpStatus.NOT_FOUND,"사용자 동의 설정을 찾을 수 없습니다."),
+
+    //리프레시 토큰 암호화 관련
+    HMAC_256_NOT_AVAILABLE(HttpStatus.INTERNAL_SERVER_ERROR, "HMAC-SHA256이 존재하지 않습니다");
     private final HttpStatus status;
     private final String message;
 }

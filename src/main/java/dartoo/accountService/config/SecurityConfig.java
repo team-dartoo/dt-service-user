@@ -1,5 +1,7 @@
 package dartoo.accountService.config;
 
+import dartoo.accountService.error.JwtAuthenticationEntryPoint;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -21,7 +23,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @EnableMethodSecurity
 @Configuration
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtAuthenticationEntryPoint jwtEntryPoint;
 
     @Bean
     public PasswordEncoder bCryptPasswordEncoder() {
@@ -41,6 +46,8 @@ public class SecurityConfig {
         http.oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.decoder(decoder)
                 .jwtAuthenticationConverter(conv))); //자체 JwtAuthFilter.java 불필요하게 처리
 
+        //JWT 인증 실패 예외 처리
+        http.exceptionHandling(ex -> ex.authenticationEntryPoint(jwtEntryPoint));
         http.cors(Customizer.withDefaults()); //나중에 추가 설정
 
         return http.build();

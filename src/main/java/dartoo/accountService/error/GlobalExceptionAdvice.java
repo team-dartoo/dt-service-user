@@ -50,12 +50,13 @@ public class GlobalExceptionAdvice {
         return ResponseEntity.badRequest().body(result);
     }
 
-    //@PreAuthorize와 같은 곳들에서 발생하는 AccessDeniedException 관리
+    //AccessDeniedException 관리
+    //@PreAuthorize를 사용하는 경우, 필터 레벨에서 AccessDeniedHandler로 구현해야 한다.
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResult> accessDeniedExceptionHandle(AccessDeniedException e, HttpServletRequest request){
         log.warn("Access denied: message={}, path={}", e.getMessage(), request.getRequestURI());
         ErrorResult result = new ErrorResult(
-                "ACCESS_DENIED", "접근 권한이 없습니다.", HttpStatus.FORBIDDEN.value(),
+                "ACCESS_DENIED", "해당 작업을 수행할 권한이 없습니다.", HttpStatus.FORBIDDEN.value(),
                 HtmlUtils.htmlEscape(request.getRequestURI()), Instant.now()
         );
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(result);
