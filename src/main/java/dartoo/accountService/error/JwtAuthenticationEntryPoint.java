@@ -30,7 +30,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
         log.warn("Authentication failed: message={}, path={}", authException.getMessage(), request.getRequestURI());
 
         ErrorResult result = new ErrorResult(
-                "AUTHENTICATION+FAILED",
+                "AUTHENTICATION_FAILED",
                 "JWT 액세스 토큰 검증에 실패했습니다.",
                 HttpStatus.UNAUTHORIZED.value(),
                 HtmlUtils.htmlEscape(request.getRequestURI()),
