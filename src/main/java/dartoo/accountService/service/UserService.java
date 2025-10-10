@@ -120,7 +120,7 @@ public class UserService {
         }
 
         UserEntity user = userEntityRepository.findByUserEmail(dto.getUserEmail())
-                .orElseThrow(()->new UsernameNotFoundException("User Not Found"));
+                .orElseThrow(()->new ApiException(USER_NOT_FOUND));
 
         //1. 리프레시 토큰 제거
         refreshTokenRepository.deleteAllByUserEntity(user);
