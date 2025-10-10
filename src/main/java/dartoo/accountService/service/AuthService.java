@@ -103,7 +103,7 @@ public class AuthService {
         rt.revoke(now);
         rt.rotate(now);
 
-        //상황에 따라 다르게 (AccessToken 만료라서 재발급 받을 때 vs 재로그인 시 자동로그인으로 인한 RT 만료 연장)
+        //상황에 따라 다르게 (AccessToken 만료라서 재발급 받을 때 vs 재로그인 시 자동로그인으로 인한 Refresh Token 만료 연장)
         //refreshToken의 만료 시간을 정한다.
         Instant newExpire = isRestart ? now.plusSeconds(cfg.getRefreshTtlSeconds()) : rt.getExpiredAt();
 
@@ -165,7 +165,7 @@ public class AuthService {
         UserEntity user = userEntityRepository.findByUserEmail(email)
                 .orElseThrow(() -> new ApiException(USER_NOT_FOUND));
 
-        // 해당 기기(did)의 모든 활성화된 Refresh Token 조회
+        // 해당 기기(did)의 모든 활성화된 Refresh Token 조회 후 Revoke
         refreshTokenRepository.findAllByUserEntityAndDidAndRevokedAtIsNullAndExpiredAtAfter(user, did, now)
                 .forEach(rt -> {
                     rt.revoke(now); // revokeAt 필드 세팅
@@ -188,7 +188,7 @@ public class AuthService {
         }
     }
 
-    //Jwt 검증 로직 : AccessToken에 대한 검증은 SecurityConfig.java에서 만든 필터에서 함.
+    //Jwt 검증 로직: AccessToken에 대한 검증은 SecurityConfig.java에서 만든 필터에서 함.
 //    private Claims parseAndValidateAccess(String jwt){
 //        try {
 //            return Jwts.parserBuilder()
