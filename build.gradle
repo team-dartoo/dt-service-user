@@ -52,6 +52,9 @@ dependencies {
     //validation 로직
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
+    //Service layer 테스트용 (Instant.now() 때문에)
+    testImplementation "org.mockito:mockito-inline:5.2.0"
+
 }
 dependencyManagement {
     imports {

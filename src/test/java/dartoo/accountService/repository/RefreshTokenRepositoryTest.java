@@ -153,6 +153,7 @@ class RefreshTokenRepositoryTest {
     void deleteAllByUserEntity() {
         //given
         List<RefreshToken> before = refreshTokenRepository.findAll();
+        assertThat(before).hasSize(7);
         //when
         refreshTokenRepository.deleteAllByUserEntity(testUser);
         entityManager.flush();
