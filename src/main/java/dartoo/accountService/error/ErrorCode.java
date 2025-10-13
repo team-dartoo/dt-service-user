@@ -25,7 +25,9 @@ public enum ErrorCode {
     USER_AGREED_NOT_FOUND(HttpStatus.NOT_FOUND,"사용자 동의 설정을 찾을 수 없습니다."),
 
     //리프레시 토큰 암호화 관련
-    HMAC_256_NOT_AVAILABLE(HttpStatus.INTERNAL_SERVER_ERROR, "HMAC-SHA256이 존재하지 않습니다");
+    HMAC_256_NOT_AVAILABLE(HttpStatus.INTERNAL_SERVER_ERROR, "HMAC-SHA256이 존재하지 않습니다"),
+    INVALID_HMAC_KEY(HttpStatus.INTERNAL_SERVER_ERROR, "유효하지 않은 HMAC KEY입니다.");
+
     private final HttpStatus status;
     private final String message;
 }

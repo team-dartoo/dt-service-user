@@ -22,11 +22,14 @@ import org.springframework.web.server.ResponseStatusException;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.HexFormat;
 import java.util.Optional;
 
 import static dartoo.accountService.error.ErrorCode.*;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @Service
@@ -175,6 +178,11 @@ public class AuthService {
 
     //DB에 저장 시 RefreshPepper을 추가해서 저장
     private String hashRt(String raw) {
+
+        if(raw==null || raw.isBlank()){
+            throw new ApiException(INVALID_REFRESH_TOKEN);
+        }
+
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
             SecretKeySpec key = new SecretKeySpec(
@@ -183,8 +191,10 @@ public class AuthService {
             mac.init(key);
             byte[] out = mac.doFinal(raw.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(out); // 64 hex
-        } catch (Exception e) {
+        } catch (NoSuchAlgorithmException e) {
             throw new ApiException(HMAC_256_NOT_AVAILABLE);
+        } catch (InvalidKeyException e){
+            throw new ApiException(INVALID_HMAC_KEY);
         }
     }
 

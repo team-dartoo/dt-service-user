@@ -13,7 +13,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
-import org.mockito.exceptions.misusing.UnnecessaryStubbingException;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.crypto.spec.SecretKeySpec;
@@ -24,8 +23,7 @@ import java.util.Optional;
 
 import static dartoo.accountService.error.ErrorCode.USER_NOT_FOUND;
 import static io.jsonwebtoken.SignatureAlgorithm.HS256;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -37,7 +35,7 @@ public class AuthServiceTest {
     //가짜 객체
     @Mock JwtConfig jwtConfig;
     @Mock TokenService tokenService;
-    @Mock UserEntityRepository userRepo;
+    @Mock UserEntityRepository userEntityRepository;
     @Mock RefreshTokenRepository refreshTokenRepository;
     @Mock HttpServletResponse response;
 
@@ -58,7 +56,7 @@ public class AuthServiceTest {
     }
 
     @BeforeEach
-    public void setUp(TestInfo testInfo) {
+    public void setUp() {
         //시간 설정
         instantMock = Mockito.mockStatic(Instant.class, Answers.CALLS_REAL_METHODS);
         instantMock.when(Instant::now).thenReturn(FIXED);
@@ -73,13 +71,14 @@ public class AuthServiceTest {
 
         // JwtConfig Mock 기본 설정
         testRefreshKey = new SecretKeySpec("test-refresh-secret-key-with-minimum-256-bits".getBytes(), "HmacSHA256");
-        if (testInfo.getTags().contains("needsJwtConfig")) {
-            given(jwtConfig.getIssuer()).willReturn("dartoo");
-            given(jwtConfig.getAccessTtlSeconds()).willReturn(3600L);
-            given(jwtConfig.getRefreshTtlSeconds()).willReturn(1209600L);
-            given(jwtConfig.getRefreshKey()).willReturn(testRefreshKey);
-            given(jwtConfig.getRefreshPepper()).willReturn("Refresh-Pepper-with-minimum-256-bits");
-        }
+
+        // Config는 테스트마다 일부만 쓰기 때문에 lenient 사용
+        //가급적 지양해야 하지만, 테스트 메서드마다 사용하는 config가 전부 상이해서 이렇게 사용
+        lenient().when(jwtConfig.getIssuer()).thenReturn("dartoo");
+        lenient().when(jwtConfig.getAccessTtlSeconds()).thenReturn(3600L);
+        lenient().when(jwtConfig.getRefreshTtlSeconds()).thenReturn(1209600L);
+        lenient().when(jwtConfig.getRefreshKey()).thenReturn(testRefreshKey);
+        lenient().when(jwtConfig.getRefreshPepper()).thenReturn("Refresh-Pepper-with-minimum-256-bits");
     }
 
     @AfterEach
@@ -87,7 +86,7 @@ public class AuthServiceTest {
         instantMock.close(); // 꼭 닫아줘
     }
 
-    @Tag("needsJwtConfig")
+    //@Tag("needsJwtConfig")
     @DisplayName("로그인 성공시 AccessToken과 RefreshToken 정상 발급")
     @Test
     public void loginIssueSuccess() {
@@ -96,7 +95,7 @@ public class AuthServiceTest {
         String userAgent = "testUserAgent";
         String accessToken = "test-access-token";
         String refreshToken = createTestRefreshToken(testUser.getUserEmail(), did, FIXED);
-        given(userRepo.findByUserEmail(testUser.getUserEmail())).willReturn(Optional.of(testUser));
+        given(userEntityRepository.findByUserEmail(testUser.getUserEmail())).willReturn(Optional.of(testUser));
 
         //테스트용 기존에 활성화되어있던 RefreshToken 2개
         RefreshToken oldRt1 = RefreshToken.builder()
@@ -170,9 +169,9 @@ public class AuthServiceTest {
 
     @DisplayName("DB에서 사용자를 찾을 수 없을 시, USER_NOT_FOUND 예외를 던진다")
     @Test
-    public void loginIssueFail() throws UnnecessaryStubbingException {
+    public void loginIssueFail() {
         // Given - 사용자 DB에 존재하지 않는 이메일
-        given(userRepo.findByUserEmail("unknown@test.com")).willReturn(Optional.empty());
+        given(userEntityRepository.findByUserEmail("unknown@test.com")).willReturn(Optional.empty());
 
         // When, Then
         //존재하지 않는 이메일로 로그인 시도시, ApiException에 해당하는 USER_NOT_FOUND 에러를 반환
@@ -185,4 +184,186 @@ public class AuthServiceTest {
         //예외가 발생했으니 토큰 생성 로직은 실행되지 않아야 한다.
         then(tokenService).should(never()).createAccessToken(any(), any(), any(), any());
     }
+
+    @DisplayName("Refresh Token 회전 성공 (일반 갱신)")
+    @Test
+    void refreshSuccessNormal(){
+        //given
+        String did = "test-did";
+        String userAgent = "testUserAgent";
+        String oldRefreshToken = createTestRefreshToken(testUser.getUserEmail(), did, FIXED.minus(Duration.ofSeconds(3000)));
+        String newAccess = "new-access-token";
+        String newRefreshToken = createTestRefreshToken(testUser.getUserEmail(), did, FIXED);
+
+        RefreshToken rt = RefreshToken.builder()
+                .userEntity(testUser)
+                .token(oldRefreshToken)
+                .createdAt(FIXED.minus(Duration.ofDays(1)))
+                .expiredAt(FIXED.plus(Duration.ofDays(13)))
+                .revokedAt(null)
+                .rotatedAt(null)
+                .did(did)
+                .userAgent(userAgent)
+                .build();
+
+        given(userEntityRepository.findByUserEmail(testUser.getUserEmail())).willReturn(Optional.of(testUser));
+        given(refreshTokenRepository.findByUserEntityAndToken(eq(testUser),any())).willReturn(Optional.of(rt));
+        given(tokenService.createAccessToken(testUser.getUserEmail(),testUser.getNickname(),FIXED,testUser.getRole())).willReturn(newAccess);
+        given(tokenService.createRefreshTokenFixed(eq(testUser.getUserEmail()),eq(did),any())).willReturn(newRefreshToken);
+
+        //when
+        TokenResponseDto result = authService.refresh(oldRefreshToken,false,response);
+
+        //then
+        //1. 새로운 액세스 토큽 발급 확인
+        assertThat(result.getAccessToken()).isEqualTo(newAccess);
+        //2. 기존 RefreshToken을 Rotate + Revoke 했는지 확인
+        assertThat(rt.getRotatedAt()).isNotNull();
+        assertThat(rt.getRevokedAt()).isNotNull();
+        //3. 관련 RefreshToken을 제대로 DB에 저장했는지 확인
+        //refreshToken 생성시 만료 시간 정보가 잘 들어갔는지 확인 (제일 중요한 정보니까)
+        then(refreshTokenRepository).should().save(argThat(saved ->
+                saved.getExpiredAt().equals(rt.getExpiredAt())));
+    }
+
+    @DisplayName("Refresh Token 회전 성공 (자동 로그인)")
+    @Test
+    void refreshSuccessAutoLogin(){
+        //given
+        String did = "test-did";
+        String userAgent = "testUserAgent";
+        String oldRefreshToken = createTestRefreshToken(testUser.getUserEmail(), did, FIXED.minus(Duration.ofSeconds(3000)));
+        String newAccess = "new-access-token";
+        String newRefreshToken = createTestRefreshToken(testUser.getUserEmail(), did, FIXED);
+
+        RefreshToken rt = RefreshToken.builder()
+                .userEntity(testUser)
+                .token(oldRefreshToken)
+                .createdAt(FIXED.minus(Duration.ofDays(1)))
+                .expiredAt(FIXED.plus(Duration.ofDays(13)))
+                .revokedAt(null)
+                .rotatedAt(null)
+                .did(did)
+                .userAgent(userAgent)
+                .build();
+
+        given(userEntityRepository.findByUserEmail(testUser.getUserEmail())).willReturn(Optional.of(testUser));
+        given(refreshTokenRepository.findByUserEntityAndToken(eq(testUser),any())).willReturn(Optional.of(rt));
+        given(tokenService.createAccessToken(testUser.getUserEmail(),testUser.getNickname(),FIXED,testUser.getRole())).willReturn(newAccess);
+        given(tokenService.createRefreshToken(eq(testUser.getUserEmail()),eq(did),any())).willReturn(newRefreshToken);
+
+        //when
+        TokenResponseDto result = authService.refresh(oldRefreshToken,true,response);
+
+        //then
+        //1. 새로운 액세스 토큽 발급 확인
+        assertThat(result.getAccessToken()).isEqualTo(newAccess);
+        //2. 기존 RefreshToken을 Rotate + Revoke 했는지 확인
+        assertThat(rt.getRotatedAt()).isNotNull();
+        assertThat(rt.getRevokedAt()).isNotNull();
+        //3. 관련 RefreshToken을 제대로 DB에 저장했는지 확인
+        //refreshToken 생성시 만료 시간 정보가 잘 들어갔는지 확인 (제일 중요한 정보니까)
+        then(refreshTokenRepository).should().save(argThat(saved ->
+                saved.getExpiredAt().equals(FIXED.plusSeconds(jwtConfig.getRefreshTtlSeconds()))));
+    }
+
+    @DisplayName("refresh 호출 시 토큰이 null / blank 인 경우 INVALID_REFRESH_TOKEN 에러 코드 호출")
+    @Test
+    public void refreshInvalidRefreshTokenNull(){
+
+    }
+
+    @DisplayName("refresh 호출 시 parseAndValidateRefresh 에서 INVALID_REFRESH_TOKEN 에러 코드 호출")
+    @Test
+    public void refreshInvalidRefreshTokenJwt(){
+
+    }
+
+    @DisplayName("refresh 호출 시 deviceId가 없어 INVALID_DEVICE_ID 에러 코드 호출")
+    @Test
+    public void refreshInvalidDeviceId(){
+
+    }
+
+    @DisplayName("refresh 호출 시 사용자가 없어 USER_NOT_FOUND 에러 코드 호출")
+    @Test
+    public void refreshUserNotFound(){
+
+    }
+
+    @DisplayName("refresh 호출 시 DB에 저장 정보가 없어 REFRESH_TOKEN_NOT_FOUND 에러 코드 호출")
+    @Test
+    public void refreshRefreshTokenNotFound(){
+
+    }
+    @DisplayName("refresh 호출 시 이미 rotated된 경우 REFRESH_TOKEN_ALREADY_ROTATED 에러 코드 호출")
+    @Test
+    public void refreshRefreshTokenAlreadyRotated(){
+
+    }
+
+
+    @DisplayName("refresh 호출 시 이미 만료된 경우 REFRESH_TOKEN_EXPIRED 에러 코드 호출")
+    @Test
+    public void refreshRefreshTokenExpired(){
+
+
+    }
+
+    //@Tag("needsJwtConfig")
+    @DisplayName("로그아웃 시 해당 기기의 모든 RefreshToken을 revoke한다")
+    @Test
+    public void revokeRefreshTokenSuccess(){
+        //given
+        String did = "test-did";
+        String userAgent = "testUserAgent";
+        String refreshToken = createTestRefreshToken(testUser.getUserEmail(), did, FIXED);
+
+        RefreshToken rt1 = RefreshToken.builder()
+                .userEntity(testUser)
+                .token("rt1_hash_abc123")
+                .did(did)
+                .userAgent(userAgent)
+                .createdAt(FIXED.minus(Duration.ofDays(1)))
+                .expiredAt(FIXED.plus(Duration.ofDays(13)))
+                .revokedAt(null)
+                .rotatedAt(null)
+                .build();
+
+        RefreshToken rt2 = RefreshToken.builder()
+                .userEntity(testUser)
+                .token("rt2_hash_abc123")
+                .did(did)
+                .userAgent(userAgent)
+                .createdAt(FIXED.minus(Duration.ofDays(5)))
+                .expiredAt(FIXED.plus(Duration.ofDays(9)))
+                .revokedAt(null)
+                .rotatedAt(null)
+                .build();
+
+        given(userEntityRepository.findByUserEmail(testUser.getUserEmail())).willReturn(Optional.of(testUser));
+        given(refreshTokenRepository.findAllByUserEntityAndDidAndRevokedAtIsNullAndExpiredAtAfter(testUser,did,FIXED))
+                .willReturn(java.util.List.of(rt1,rt2));
+
+        //when
+        authService.revokeRefreshToken(refreshToken,did);
+
+        //then
+        assertThat(rt1.getRevokedAt()).isNotNull();
+        assertThat(rt2.getRevokedAt()).isNotNull();
+        then(refreshTokenRepository).should(times(2)).save(any(RefreshToken.class));
+    }
+
+    @DisplayName("리프레시 토큰이 비어있거나 없을 경우 아무 일도 발생하지 않는다")
+    @Test
+    public void revokeRefreshTokenEmpty(){
+        //assertThatCode - 코드의 실행 여부를 테스트해준다
+        assertThatCode(()->authService.revokeRefreshToken("","test-did"))
+        .doesNotThrowAnyException();
+        then(refreshTokenRepository).should(never()).save(any(RefreshToken.class));
+        assertThatCode(()->authService.revokeRefreshToken(null,"test-did"))
+                .doesNotThrowAnyException();
+        then(refreshTokenRepository).should(never()).save(any(RefreshToken.class));
+    }
+
 }
