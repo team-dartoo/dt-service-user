@@ -5,19 +5,17 @@ import dartoo.accountService.domain.RefreshToken;
 import dartoo.accountService.domain.UserEntity;
 import dartoo.accountService.dto.TokenResponseDto;
 import dartoo.accountService.error.ApiException;
-import dartoo.accountService.error.ErrorCode;
 import dartoo.accountService.repository.RefreshTokenRepository;
 import dartoo.accountService.repository.UserEntityRepository;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -29,8 +27,6 @@ import java.util.HexFormat;
 import java.util.Optional;
 
 import static dartoo.accountService.error.ErrorCode.*;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
-import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @Service
 @RequiredArgsConstructor
@@ -222,8 +218,10 @@ public class AuthService {
                     .build()
                     .parseClaimsJws(jwt)
                     .getBody();
-        } catch (JwtException e) { //invalid한 JWT일 경우 401 반환
-            throw new ApiException(INVALID_REFRESH_TOKEN);
+        } catch (ExpiredJwtException e){
+            throw new ApiException(REFRESH_TOKEN_EXPIRED_JWT);
+        } catch (JwtException | IllegalArgumentException e) { //invalid한 JWT일 경우 401 반환
+            throw new ApiException(INVALID_REFRESH_TOKEN_JWT);
         }
     }
 

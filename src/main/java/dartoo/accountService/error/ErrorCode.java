@@ -26,7 +26,11 @@ public enum ErrorCode {
 
     //리프레시 토큰 암호화 관련
     HMAC_256_NOT_AVAILABLE(HttpStatus.INTERNAL_SERVER_ERROR, "HMAC-SHA256이 존재하지 않습니다"),
-    INVALID_HMAC_KEY(HttpStatus.INTERNAL_SERVER_ERROR, "유효하지 않은 HMAC KEY입니다.");
+    INVALID_HMAC_KEY(HttpStatus.INTERNAL_SERVER_ERROR, "유효하지 않은 HMAC KEY입니다."),
+
+    //리프레시 토큰 파싱 관련
+    INVALID_REFRESH_TOKEN_JWT(HttpStatus.UNAUTHORIZED, "유효하지 않은 리프레시 토큰을 파싱하려 했습니다."),
+    REFRESH_TOKEN_EXPIRED_JWT(HttpStatus.UNAUTHORIZED, "만료된 리프레시 토큰을 파싱하려 했습니다.");
 
     private final HttpStatus status;
     private final String message;

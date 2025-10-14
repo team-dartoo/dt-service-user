@@ -269,13 +269,19 @@ public class AuthServiceTest {
 
     @DisplayName("refresh 호출 시 토큰이 null / blank 인 경우 INVALID_REFRESH_TOKEN 에러 코드 호출")
     @Test
-    public void refreshInvalidRefreshTokenNull(){
+    public void refreshInvalidRefreshToken(){
 
     }
 
-    @DisplayName("refresh 호출 시 parseAndValidateRefresh 에서 INVALID_REFRESH_TOKEN 에러 코드 호출")
+    @DisplayName("refresh 호출 시 parseAndValidateRefresh 에서 INVALID_REFRESH_TOKEN_JWT 에러 코드 호출")
     @Test
     public void refreshInvalidRefreshTokenJwt(){
+
+    }
+
+    @DisplayName("refresh 호출 시 parseAndValidateRefresh 에서 REFRESH_TOKEN_EXPIRED_JWT 에러 코드 호출")
+    @Test
+    public void refreshRefreshTokenExpiredJwt(){
 
     }
 
@@ -296,6 +302,7 @@ public class AuthServiceTest {
     public void refreshRefreshTokenNotFound(){
 
     }
+
     @DisplayName("refresh 호출 시 이미 rotated된 경우 REFRESH_TOKEN_ALREADY_ROTATED 에러 코드 호출")
     @Test
     public void refreshRefreshTokenAlreadyRotated(){
