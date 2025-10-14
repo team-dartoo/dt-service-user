@@ -83,6 +83,7 @@ public class AuthService {
         Claims claims = parseAndValidateRefresh(refreshToken);
         String email = claims.getSubject();
         String deviceId = Optional.ofNullable(claims.get("did", String.class))
+                .filter(s -> !s.isBlank())
                 .orElseThrow(() -> new ApiException(INVALID_DEVICE_ID));
 
 

@@ -21,7 +21,7 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.Optional;
 
-import static dartoo.accountService.error.ErrorCode.USER_NOT_FOUND;
+import static dartoo.accountService.error.ErrorCode.*;
 import static io.jsonwebtoken.SignatureAlgorithm.HS256;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
@@ -156,17 +156,6 @@ public class AuthServiceTest {
         ));
     }
 
-    private String createTestRefreshToken(String email, String did, Instant now) {
-        return Jwts.builder()
-                .setIssuer("dartoo")
-                .setSubject(email)
-                .claim("did", did)
-                .setIssuedAt(Date.from(now))
-                .setExpiration(Date.from(now.plus(Duration.ofDays(14))))
-                .signWith(testRefreshKey, HS256)
-                .compact();
-    }
-
     @DisplayName("DB에서 사용자를 찾을 수 없을 시, USER_NOT_FOUND 예외를 던진다")
     @Test
     public void loginIssueFail() {
@@ -270,51 +259,154 @@ public class AuthServiceTest {
     @DisplayName("refresh 호출 시 토큰이 null / blank 인 경우 INVALID_REFRESH_TOKEN 에러 코드 호출")
     @Test
     public void refreshInvalidRefreshToken(){
-
+        //given 생략
+        //when, then
+        assertThatThrownBy(() ->
+                authService.refresh("", false, response))
+                .isInstanceOf(ApiException.class)
+                //ApiException 클래스가 errorCode 필드를 가지고 있고, INVALID_REFRESH_TOKEN의 값을 가지는지 확인
+                .hasFieldOrPropertyWithValue("errorCode", INVALID_REFRESH_TOKEN);
+        assertThatThrownBy(() ->
+                authService.refresh(null, true, response))
+                .isInstanceOf(ApiException.class)
+                //ApiException 클래스가 errorCode 필드를 가지고 있고, INVALID_REFRESH_TOKEN의 값을 가지는지 확인
+                .hasFieldOrPropertyWithValue("errorCode", INVALID_REFRESH_TOKEN);
     }
 
     @DisplayName("refresh 호출 시 parseAndValidateRefresh 에서 INVALID_REFRESH_TOKEN_JWT 에러 코드 호출")
     @Test
     public void refreshInvalidRefreshTokenJwt(){
-
+        //given
+        String invalidRefreshToken = createRefreshTokenDifferentIssuer(testUser.getUserEmail(), "test-did", FIXED);
+        //when, then
+        assertThatThrownBy(() ->
+                authService.refresh(invalidRefreshToken, false, response))
+                .isInstanceOf(ApiException.class)
+                //ApiException 클래스가 errorCode 필드를 가지고 있고, INVALID_REFRESH_TOKEN_JWT의 값을 가지는지 확인
+                .hasFieldOrPropertyWithValue("errorCode", INVALID_REFRESH_TOKEN_JWT);
     }
 
     @DisplayName("refresh 호출 시 parseAndValidateRefresh 에서 REFRESH_TOKEN_EXPIRED_JWT 에러 코드 호출")
     @Test
     public void refreshRefreshTokenExpiredJwt(){
-
+        //given
+        String expiredRefreshToken = createTestRefreshToken(testUser.getUserEmail(), "test-did", FIXED.minus(Duration.ofDays(15)));
+        //when,then
+        assertThatThrownBy(() ->
+                authService.refresh(expiredRefreshToken, false, response))
+                .isInstanceOf(ApiException.class)
+                //ApiException 클래스가 errorCode 필드를 가지고 있고, REFRESH_TOKEN_EXPIRED_JWT의 값을 가지는지 확인
+                .hasFieldOrPropertyWithValue("errorCode", REFRESH_TOKEN_EXPIRED_JWT);
     }
 
-    @DisplayName("refresh 호출 시 deviceId가 없어 INVALID_DEVICE_ID 에러 코드 호출")
+    @DisplayName("refresh 호출 시 deviceId가 null이거나 빈 문자열인 경우 INVALID_DEVICE_ID 에러 코드 호출")
     @Test
     public void refreshInvalidDeviceId(){
-
+        //given
+        String invalidDidRefreshTokenNull = createTestRefreshToken(testUser.getUserEmail(), null, FIXED);
+        String invalidDidRefreshTokenBlank = createTestRefreshToken(testUser.getUserEmail(), "", FIXED);
+        //when, then
+        assertThatThrownBy(() ->
+                authService.refresh(invalidDidRefreshTokenNull, false, response))
+                .isInstanceOf(ApiException.class)
+                //ApiException 클래스가 errorCode 필드를 가지고 있고, INVALID_DEVICE_ID의 값을 가지는지 확인
+                .hasFieldOrPropertyWithValue("errorCode", INVALID_DEVICE_ID);
+        assertThatThrownBy(() ->
+                authService.refresh(invalidDidRefreshTokenBlank, false, response))
+                .isInstanceOf(ApiException.class)
+                //ApiException 클래스가 errorCode 필드를 가지고 있고, INVALID_DEVICE_ID의 값을 가지는지 확인
+                .hasFieldOrPropertyWithValue("errorCode", INVALID_DEVICE_ID);
     }
 
     @DisplayName("refresh 호출 시 사용자가 없어 USER_NOT_FOUND 에러 코드 호출")
     @Test
     public void refreshUserNotFound(){
+        //given
+        String did = "test-did";
+        String wrongUser = "notavailable@test.com";
+        String wrongUserRefreshToken = createTestRefreshToken(wrongUser, did, FIXED);
 
+        given(userEntityRepository.findByUserEmail(wrongUser)).willReturn(Optional.empty());
+        //when, then
+        assertThatThrownBy(() ->
+                authService.refresh(wrongUserRefreshToken, false, response))
+                .isInstanceOf(ApiException.class)
+                //ApiException 클래스가 errorCode 필드를 가지고 있고, USER_NOT_FOUND의 값을 가지는지 확인
+                .hasFieldOrPropertyWithValue("errorCode", USER_NOT_FOUND);
     }
 
     @DisplayName("refresh 호출 시 DB에 저장 정보가 없어 REFRESH_TOKEN_NOT_FOUND 에러 코드 호출")
     @Test
     public void refreshRefreshTokenNotFound(){
+        //given
+        String fakeRefreshToken = createTestRefreshToken(testUser.getUserEmail(), "test-did", FIXED);
 
+        given(userEntityRepository.findByUserEmail(testUser.getUserEmail())).willReturn(Optional.of(testUser));
+        given(refreshTokenRepository.findByUserEntityAndToken(eq(testUser),any())).willReturn(Optional.empty());
+        //when, then
+        assertThatThrownBy(() ->
+                authService.refresh(fakeRefreshToken, false, response))
+                .isInstanceOf(ApiException.class)
+                //ApiException 클래스가 errorCode 필드를 가지고 있고, REFRESH_TOKEN_NOT_FOUND의 값을 가지는지 확인
+                .hasFieldOrPropertyWithValue("errorCode", REFRESH_TOKEN_NOT_FOUND);
     }
 
     @DisplayName("refresh 호출 시 이미 rotated된 경우 REFRESH_TOKEN_ALREADY_ROTATED 에러 코드 호출")
     @Test
     public void refreshRefreshTokenAlreadyRotated(){
+        //given
+        String did = "test-did";
+        String userAgent = "testUserAgent";
+        String refreshToken = createTestRefreshToken(testUser.getUserEmail(), did, FIXED);
+        RefreshToken rt = RefreshToken.builder()
+                .userEntity(testUser)
+                .token(refreshToken)
+                .did(did)
+                .createdAt(FIXED)
+                .expiredAt(FIXED.plus(Duration.ofDays(14)))
+                .rotatedAt(FIXED.minus(Duration.ofSeconds(300))) //이미 회전됨
+                .revokedAt(null)
+                .userAgent(userAgent)
+                .build();
+
+        given(userEntityRepository.findByUserEmail(testUser.getUserEmail())).willReturn(Optional.of(testUser));
+        given(refreshTokenRepository.findByUserEntityAndToken(eq(testUser),any())).willReturn(Optional.of(rt));
+        //when, then
+        assertThatThrownBy(() ->
+                authService.refresh(refreshToken, false, response))
+                .isInstanceOf(ApiException.class)
+                //ApiException 클래스가 errorCode 필드를 가지고 있고, REFRESH_TOKEN_ALREADY_ROTATED의 값을 가지는지 확인
+                .hasFieldOrPropertyWithValue("errorCode", REFRESH_TOKEN_ALREADY_ROTATED);
 
     }
 
 
-    @DisplayName("refresh 호출 시 이미 만료된 경우 REFRESH_TOKEN_EXPIRED 에러 코드 호출")
+    @DisplayName("refresh 호출 시 해당 정보를 기반으로 DB에서 불러온 토큰이 이미 만료된 경우 REFRESH_TOKEN_EXPIRED 에러 코드 호출")
     @Test
     public void refreshRefreshTokenExpired(){
+        //given
+        String did = "test-did";
+        String userAgent = "testUserAgent";
+        String refreshToken = createTestRefreshToken(testUser.getUserEmail(), did, FIXED);
+        RefreshToken rt = RefreshToken.builder()
+                .userEntity(testUser)
+                .token(refreshToken)
+                .did(did)
+                .createdAt(FIXED)
+                .expiredAt(FIXED.minus(Duration.ofSeconds(60))) //이미 만료됨
+                .rotatedAt(null)
+                .revokedAt(null)
+                .userAgent(userAgent)
+                .build();
 
-
+        given(userEntityRepository.findByUserEmail(testUser.getUserEmail())).willReturn(Optional.of(testUser));
+        given(refreshTokenRepository.findByUserEntityAndToken(eq(testUser),any())).willReturn(Optional.of(rt));
+        //when, then
+        assertThatThrownBy(() ->
+                authService.refresh(refreshToken, false, response))
+                .isInstanceOf(ApiException.class)
+                //ApiException 클래스가 errorCode 필드를 가지고 있고, REFRESH_TOKEN_EXPIRED의 값을 가지는지 확인
+                .hasFieldOrPropertyWithValue("errorCode", REFRESH_TOKEN_EXPIRED);
     }
 
     //@Tag("needsJwtConfig")
@@ -373,4 +465,26 @@ public class AuthServiceTest {
         then(refreshTokenRepository).should(never()).save(any(RefreshToken.class));
     }
 
+    //유틸리티 메서드들
+    private String createTestRefreshToken(String email, String did, Instant now) {
+        return Jwts.builder()
+                .setIssuer("dartoo")
+                .setSubject(email)
+                .claim("did", did)
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(now.plus(Duration.ofDays(14))))
+                .signWith(testRefreshKey, HS256)
+                .compact();
+    }
+
+    private String createRefreshTokenDifferentIssuer(String email, String did, Instant now) {
+        return Jwts.builder()
+                .setIssuer("Wrong-Issuer")
+                .setSubject(email)
+                .claim("did", did)
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(now.plus(Duration.ofDays(14))))
+                .signWith(testRefreshKey, HS256)
+                .compact();
+    }
 }
