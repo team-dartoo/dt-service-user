@@ -13,12 +13,16 @@ import dartoo.accountService.repository.UserOAuthRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Collections;
 
 import static dartoo.accountService.error.ErrorCode.*;
 
@@ -81,6 +85,14 @@ public class UserService {
     //회원 정보 수정
     public UserResponseDto updateUser(UserRequestDto dto){
         String email = getSessionEmail();
+
+        // 보안 검증: DTO의 이메일이 있다면 세션 이메일과 일치하는지 확인
+        if (dto.getUserEmail() != null && !dto.getUserEmail().isBlank()) {
+            if (!email.equals(dto.getUserEmail())) {
+                throw new AccessDeniedException("본인의 정보만 수정할 수 있습니다.");
+            }
+        }
+
         UserEntity user = userEntityRepository.findByUserEmail(email)
                 .orElseThrow(()->new ApiException(USER_NOT_FOUND));
         user.changeProfile(dto.getNickname(), dto.getBirthday(), dto.getGender());
@@ -116,7 +128,7 @@ public class UserService {
         boolean isAdmin = sessionRole.equals("ROLE_"+Role.ADMIN.name());
 
         if(!isOwner && !isAdmin){
-            throw new AccessDeniedException("");
+            throw new AccessDeniedException("회원을 탈퇴할 권한이 없습니다.");
         }
 
         UserEntity user = userEntityRepository.findByUserEmail(dto.getUserEmail())

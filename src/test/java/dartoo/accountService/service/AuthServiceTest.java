@@ -83,7 +83,7 @@ public class AuthServiceTest {
 
     @AfterEach
     void tearDown() {
-        instantMock.close(); // 꼭 닫아줘
+        instantMock.close();
     }
 
     //@Tag("needsJwtConfig")
@@ -130,6 +130,7 @@ public class AuthServiceTest {
         //when
         TokenResponseDto result = authService.loginIssue(testUser.getUserEmail(), did, userAgent, response);
         //then
+        //실제 객체엔 assertThat, Mock 객체엔 then을 사용하여 테스트할 수 있다.
         //1. 응답 DTO에 정상적인 AccessToken과 RefreshToken 발급 여부 확인
         assertThat(result.getAccessToken()).isEqualTo(accessToken);
         assertThat(result.getRefreshToken()).isEqualTo(refreshToken);

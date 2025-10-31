@@ -32,6 +32,8 @@ public enum ErrorCode {
     INVALID_REFRESH_TOKEN_JWT(HttpStatus.UNAUTHORIZED, "유효하지 않은 리프레시 토큰을 파싱하려 했습니다."),
     REFRESH_TOKEN_EXPIRED_JWT(HttpStatus.UNAUTHORIZED, "만료된 리프레시 토큰을 파싱하려 했습니다.");
 
+    //권한 관련
+//    ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 작업을 수행할 권한이 없습니다.");
     private final HttpStatus status;
     private final String message;
 }
