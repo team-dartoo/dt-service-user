@@ -14,8 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import static dartoo.accountService.error.ErrorCode.USER_AGREED_NOT_FOUND;
-import static dartoo.accountService.error.ErrorCode.USER_NOT_FOUND;
+import static dartoo.accountService.error.ErrorCode.*;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 //사용자 설정 관련 서비스
@@ -42,7 +41,7 @@ public class UserSettingsService {
         UserEntity user = userEntityRepository.findByUserEmail(email)
                 .orElseThrow(()-> new ApiException(USER_NOT_FOUND));
         UserPreference userPreference = userPreferenceRepository.findById(user.getId())
-                .orElseThrow(()-> new ApiException(USER_AGREED_NOT_FOUND));
+                .orElseThrow(()-> new ApiException(USER_PREFERENCE_NOT_FOUND));
         return new PreferenceSettingsDto(userPreference.getPushEnabled(),userPreference.getEmailEnabled(), userPreference.getAlertDelay());
     }
 

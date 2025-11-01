@@ -10,7 +10,6 @@ import dartoo.accountService.error.ApiException;
 import dartoo.accountService.repository.RefreshTokenRepository;
 import dartoo.accountService.repository.UserEntityRepository;
 import dartoo.accountService.repository.UserOAuthRepository;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,13 +22,11 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
-import java.util.Collections;
 import java.util.Optional;
 
 import static dartoo.accountService.error.ErrorCode.*;

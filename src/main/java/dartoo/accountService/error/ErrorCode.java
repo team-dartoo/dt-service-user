@@ -22,7 +22,8 @@ public enum ErrorCode {
     SAME_PASSWORD(HttpStatus.BAD_REQUEST, "새 비밀번호가 현재 비밀번호와 일치합니다."),
 
     //사용자 설정 관련
-    USER_AGREED_NOT_FOUND(HttpStatus.NOT_FOUND,"사용자 동의 설정을 찾을 수 없습니다."),
+    USER_AGREED_NOT_FOUND(HttpStatus.NOT_FOUND,"사용자 약관 동의 정보를 찾을 수 없습니다."),
+    USER_PREFERENCE_NOT_FOUND(HttpStatus.NOT_FOUND,"사용자 설정을 찾을 수 없습니다."),
 
     //리프레시 토큰 암호화 관련
     HMAC_256_NOT_AVAILABLE(HttpStatus.INTERNAL_SERVER_ERROR, "HMAC-SHA256이 존재하지 않습니다"),
