@@ -13,6 +13,8 @@ public enum ErrorCode {
     REFRESH_TOKEN_ALREADY_ROTATED(HttpStatus.UNAUTHORIZED, "이미 회전된 리프레시 토큰입니다."),
     REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "만료된 리프레시 토큰입니다."),
     REFRESH_TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 존재하지 않습니다."),
+    MISSING_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "리프레시 토큰 쿠키가 존재하지 않습니다."),
+    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED,"올바르지 않은 인증 정보입니다."),
     //사용자 관련
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
     USER_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 존재하는 사용자입니다"),
