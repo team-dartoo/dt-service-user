@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -60,6 +61,16 @@ public class GlobalExceptionAdvice {
                 HtmlUtils.htmlEscape(request.getRequestURI()), Instant.now()
         );
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(result);
+    }
+
+    //JSON 포맷 오류로 역직렬화 실패
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResult> httpMessageNotReadableExceptionHandle(HttpMessageNotReadableException e, HttpServletRequest request){
+        ErrorResult result = new ErrorResult(
+                "INVALID_REQUEST_BODY","요청 본문이 올바른 JSON 형식이 아니거나 구조가 잘못되었습니다.",
+                HttpStatus.BAD_REQUEST.value(), HtmlUtils.htmlEscape(request.getRequestURI()), Instant.now()
+        );
+        return ResponseEntity.badRequest().body(result);
     }
 
     //이외 예상치 못한 예외로직 처리

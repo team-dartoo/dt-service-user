@@ -13,7 +13,7 @@ public class ChangePasswordDto {
     private String currentPassword;
 
     @NotBlank(groups = {passwordGroup.class})
-    @Size(min = 4)
+    @Size(min = 8, groups = {passwordGroup.class})
     private String newPassword;
 }
 

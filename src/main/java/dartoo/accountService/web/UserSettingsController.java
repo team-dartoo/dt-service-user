@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -34,12 +35,12 @@ public class UserSettingsController {
 
     //설정 수정
     @PutMapping("/me/agreed")
-    public ResponseEntity<AgreedSettingsDto> setMyAgreed(@RequestBody AgreedSettingsDto settings) {
+    public ResponseEntity<AgreedSettingsDto> setMyAgreed(@RequestBody @Validated AgreedSettingsDto settings) {
         return ResponseEntity.ok().body(userSettingsService.updateUserAgreedSettings(currentEmail(), settings));
     }
 
     @PutMapping("/me/preference")
-    public ResponseEntity<PreferenceSettingsDto> setMyPreference(@RequestBody PreferenceSettingsDto settings) {
+    public ResponseEntity<PreferenceSettingsDto> setMyPreference(@RequestBody @Validated PreferenceSettingsDto settings) {
         return ResponseEntity.ok().body(userSettingsService.updateUserPreferenceSettings(currentEmail(), settings));
     }
 }
