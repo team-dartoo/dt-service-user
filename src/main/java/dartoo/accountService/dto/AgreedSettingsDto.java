@@ -11,10 +11,12 @@ import lombok.NoArgsConstructor;
 public class AgreedSettingsDto {
     @NotNull
     Boolean tosAgreed;
+    @NotNull
     String tosVersion;
 
     @NotNull
     Boolean privacyAgreed;
+    @NotNull
     String privacyVersion;
 
     @NotNull
