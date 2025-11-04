@@ -1,23 +1,46 @@
 version: '3.8'
 
 services:
-  user-service:
+  service-user:
     image: dt-service-user:v1
-    container_name: user-service
+    container_name: dt-service-user
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "8081:8081"
     env_file:
       - .env
-    # environment:
-    #   DB_URL: jdbc:mysql://mysql-dartoo:3306/Dartoo
-    #   DB_USERNAME: manager_dartoo
-    #   DB_PASSWORD: 7765
-    #   JWT_ACCESS_SECRET: asf32d96N64LkL123KNL
-    #   JWT_REFRESH_SECRET: ptmltkwret5325tgwteu65ObtoJIHoj1
-    #   JWT_REFRESH_PEPPER: u3i2q89prawei2u9x8nDSKJo 
     depends_on:
       mysql:
         condition: service_healthy
     restart: on-failure
     networks:
-      - dartoo-network
+      - dt-network
+
+  mysql:
+    image: mysql:8.0
+    container_name: dt-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: Dartoo
+      MYSQL_USER: manager_dartoo
+      MYSQL_PASSWORD: 7765
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql 
+    networks:
+      - dt-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mysql-data:
+
+networks:
+  dt-network:
+    external: true
