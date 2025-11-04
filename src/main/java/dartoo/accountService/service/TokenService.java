@@ -6,8 +6,9 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import java.util.Date;
+
 import java.time.Instant;
+import java.util.Date;
 
 @Service
 @RequiredArgsConstructor

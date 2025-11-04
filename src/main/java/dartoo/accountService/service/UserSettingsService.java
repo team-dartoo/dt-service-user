@@ -12,10 +12,8 @@ import dartoo.accountService.repository.UserPreferenceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import static dartoo.accountService.error.ErrorCode.*;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 //사용자 설정 관련 서비스
 @Service

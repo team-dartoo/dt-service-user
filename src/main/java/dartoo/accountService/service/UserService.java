@@ -6,23 +6,16 @@ import dartoo.accountService.dto.ChangePasswordDto;
 import dartoo.accountService.dto.UserRequestDto;
 import dartoo.accountService.dto.UserResponseDto;
 import dartoo.accountService.error.ApiException;
-import dartoo.accountService.error.ErrorCode;
 import dartoo.accountService.repository.RefreshTokenRepository;
 import dartoo.accountService.repository.UserEntityRepository;
 import dartoo.accountService.repository.UserOAuthRepository;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Collections;
 
 import static dartoo.accountService.error.ErrorCode.*;
 

@@ -3,7 +3,6 @@ package dartoo.accountService.service;
 import dartoo.accountService.domain.UserEntity;
 import dartoo.accountService.repository.UserEntityRepository;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;

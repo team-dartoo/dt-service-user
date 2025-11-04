@@ -5,9 +5,7 @@ import dartoo.accountService.dto.AgreedSettingsDto;
 import dartoo.accountService.dto.PreferenceSettingsDto;
 import dartoo.accountService.error.ApiException;
 import dartoo.accountService.error.GlobalExceptionAdvice;
-import dartoo.accountService.service.UserService;
 import dartoo.accountService.service.UserSettingsService;
-import lombok.With;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +19,6 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static dartoo.accountService.error.ErrorCode.*;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
