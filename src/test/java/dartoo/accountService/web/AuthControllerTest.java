@@ -104,7 +104,7 @@ class AuthControllerTest {
 
     @Test
     @DisplayName("POST /api/auth/exist - 존재하면 true")
-    void userExists_true() throws Exception {
+    void userExistsTrue() throws Exception {
         //given
         UserRequestDto dto2 = new UserRequestDto();
         dto2.setUserEmail("exist@test.com");
@@ -122,7 +122,7 @@ class AuthControllerTest {
 
     @Test
     @DisplayName("POST /api/auth/exist - 없으면 false")
-    void userExists_false() throws Exception {
+    void userExistsFalse() throws Exception {
         //given
         UserRequestDto dto2 = new UserRequestDto();
         dto2.setUserEmail("doesnotexist@test.com");
@@ -136,6 +136,22 @@ class AuthControllerTest {
                 .andExpect(content().string("false"));
 
         verify(userService, times(1)).existUser(eq(dto2));
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/exist - 이메일 형식이 아닐 경우 400 응답 코드 반환")
+    void userExistsException() throws Exception {
+        //given
+        UserRequestDto dto2 = new UserRequestDto();
+        dto2.setUserEmail("");
+        //when,then
+        mockMvc.perform(post("/api/auth/exist")
+                        .contentType(APPLICATION_JSON_VALUE)
+                        .content(objectMapper.writeValueAsString(dto2)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()))
+                .andExpect(jsonPath("$.path").value("/api/auth/exist"));
     }
 
     @Test

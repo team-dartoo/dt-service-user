@@ -52,7 +52,7 @@ public class AuthServiceTest {
     @BeforeAll
     static void initFixed() {
         FIXED = Instant.now();
-        assert FIXED != null; // sanity check
+        assert FIXED != null;
     }
 
     @BeforeEach
