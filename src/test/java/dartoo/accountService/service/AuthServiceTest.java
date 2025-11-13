@@ -352,6 +352,35 @@ public class AuthServiceTest {
                 .hasFieldOrPropertyWithValue("errorCode", REFRESH_TOKEN_NOT_FOUND);
     }
 
+    @DisplayName("refresh 호출 시 이미 revoked된 경우 REFRESH_TOKEN_ALREADY_REVOKED 에러 코드 호출")
+    @Test
+    public void refreshRefreshTokenAlreadyRevoked(){
+        //given
+        String did = "test-did";
+        String userAgent = "testUserAgent";
+        String refreshToken = createTestRefreshToken(testUser.getUserEmail(), did, FIXED.minus(Duration.ofMinutes(30)));
+        RefreshToken rt = RefreshToken.builder()
+                .userEntity(testUser)
+                .token(refreshToken)
+                .did(did)
+                .createdAt(FIXED)
+                .expiredAt(FIXED.plus(Duration.ofDays(14)))
+                .rotatedAt(null)
+                .revokedAt(FIXED.minus(Duration.ofMinutes(5))) //다른 기기에서 비밀번호 변경을 해, 기존 발급된 revoked됨
+                .userAgent(userAgent)
+                .build();
+
+        given(userEntityRepository.findByUserEmail(testUser.getUserEmail())).willReturn(Optional.of(testUser));
+        given(refreshTokenRepository.findByUserEntityAndToken(eq(testUser),any())).willReturn(Optional.of(rt));
+        //when, then
+        assertThatThrownBy(() ->
+                authService.refresh(refreshToken, false, response))
+                .isInstanceOf(ApiException.class)
+                //ApiException 클래스가 errorCode 필드를 가지고 있고, REFRESH_TOKEN_ALREADY_REVOKED의 값을 가지는지 확인
+                .hasFieldOrPropertyWithValue("errorCode", REFRESH_TOKEN_ALREADY_REVOKED);
+
+    }
+
     @DisplayName("refresh 호출 시 이미 rotated된 경우 REFRESH_TOKEN_ALREADY_ROTATED 에러 코드 호출")
     @Test
     public void refreshRefreshTokenAlreadyRotated(){
@@ -380,7 +409,6 @@ public class AuthServiceTest {
                 .hasFieldOrPropertyWithValue("errorCode", REFRESH_TOKEN_ALREADY_ROTATED);
 
     }
-
 
     @DisplayName("refresh 호출 시 해당 정보를 기반으로 DB에서 불러온 토큰이 이미 만료된 경우 REFRESH_TOKEN_EXPIRED 에러 코드 호출")
     @Test

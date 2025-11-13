@@ -94,6 +94,9 @@ public class AuthService {
                 .orElseThrow(()-> new ApiException(REFRESH_TOKEN_NOT_FOUND));
 
         //검증
+        if (rt.getRevokedAt() != null) {
+            throw new ApiException(REFRESH_TOKEN_ALREADY_REVOKED); // 새로운 에러 코드 만들어도 되고
+        }
         if (rt.getRotatedAt()!=null)
             throw new ApiException(REFRESH_TOKEN_ALREADY_ROTATED);
         if (rt.getExpiredAt().isBefore(now))

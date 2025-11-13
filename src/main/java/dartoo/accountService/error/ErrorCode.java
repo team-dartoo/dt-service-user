@@ -11,6 +11,7 @@ public enum ErrorCode {
     INVALID_DEVICE_ID(HttpStatus.UNAUTHORIZED, "유효하지 않은 기기 ID입니다."),
     INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED,"유효하지 않은 리프레시 토큰입니다."),
     REFRESH_TOKEN_ALREADY_ROTATED(HttpStatus.UNAUTHORIZED, "이미 회전된 리프레시 토큰입니다."),
+    REFRESH_TOKEN_ALREADY_REVOKED(HttpStatus.UNAUTHORIZED, "이미 철회된 리프레시 토큰입니다."),
     REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "만료된 리프레시 토큰입니다."),
     REFRESH_TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 존재하지 않습니다."),
     MISSING_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "리프레시 토큰 쿠키가 존재하지 않습니다."),
