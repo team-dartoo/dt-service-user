@@ -1,5 +1,6 @@
 package dartoo.accountService.service;
 
+import dartoo.accountService.domain.RefreshToken;
 import dartoo.accountService.domain.Role;
 import dartoo.accountService.domain.UserEntity;
 import dartoo.accountService.dto.ChangePasswordDto;
@@ -16,6 +17,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.List;
 
 import static dartoo.accountService.error.ErrorCode.*;
 
@@ -107,6 +111,14 @@ public class UserService {
         }
         user.changePassword(passwordEncoder.encode(dto.getNewPassword()));
         userEntityRepository.save(user);
+
+        //비밀번호 변경 시 해당 사용자의 모든 RefreshToken을 revoke
+        Instant now = Instant.now();
+        List<RefreshToken> actives =
+                refreshTokenRepository.findAllByUserEntityAndRevokedAtIsNullAndExpiredAtAfter(user, now);
+        for (RefreshToken rt : actives) {
+            rt.revoke(now);
+        }
     }
 
     //회원 탈퇴 - 회원 정보를 받아, 소셜 로그인 정보, 리프레시 토큰까지 함께 삭제
