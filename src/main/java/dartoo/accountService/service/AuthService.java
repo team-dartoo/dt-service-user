@@ -66,7 +66,7 @@ public class AuthService {
         attachRefreshCookie(response,refreshToken,expire);
 
         return new TokenResponseDto(
-                accessToken,cfg.getAccessTtlSeconds(),refreshToken,cfg.getRefreshTtlSeconds()
+                accessToken,cfg.getAccessTtlSeconds(),refreshToken,cfg.getRefreshTtlSeconds(),user.getPasswordSet()
         );
     }
 
@@ -133,7 +133,7 @@ public class AuthService {
         attachRefreshCookie(response,newRefresh,newExpire);
 
         long refreshTtlLeft = Math.max(0, newExpire.getEpochSecond() - now.getEpochSecond());
-        return new TokenResponseDto(newAccess,cfg.getAccessTtlSeconds(),newRefresh, refreshTtlLeft);
+        return new TokenResponseDto(newAccess,cfg.getAccessTtlSeconds(),newRefresh, refreshTtlLeft, userEntity.getPasswordSet());
     }
 
     //RefreshToken을 쿠키에 추가 - HttpOnly + Secure

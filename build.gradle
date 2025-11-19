@@ -55,6 +55,9 @@ dependencies {
     //Service layer 테스트용 (Instant.now() 때문에)
     testImplementation "org.mockito:mockito-inline:5.2.0"
 
+    //oauth 용도
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
 }
 dependencyManagement {
     imports {

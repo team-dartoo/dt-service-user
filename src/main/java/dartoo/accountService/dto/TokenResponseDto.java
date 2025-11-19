@@ -12,4 +12,5 @@ public class TokenResponseDto {
     private Long accessTokenTtl;
     private String refreshToken;
     private Long refreshTokenTtl;
+    private Boolean isPasswordSet;
 }

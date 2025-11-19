@@ -28,6 +28,13 @@ public class UserEntity {
     private String userEmail;
     @Column(nullable = false)
     private String password;
+
+    //처음에 소셜 로그인으로 회원 가입 시, 또는 비밀번호 재설정 시,
+    //직접 비밀번호 초기화가 필요함을 알리기 위함
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean passwordSet = false;
+
     @Column(nullable = false)
     private String nickname;
 
@@ -57,6 +64,7 @@ public class UserEntity {
 
     public void changePassword(String newPassword) {
         this.password = newPassword;
+        this.passwordSet = true;
     }
 
     public void changeProfile(String nickname, LocalDate birthday, Gender gender) {

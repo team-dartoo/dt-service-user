@@ -35,4 +35,8 @@ public class UserOAuth {
 
     @CreatedDate
     private Instant linkedAt;
+
+    public void updateProviderEmail(String email) {
+        this.providerEmail = email;
+    }
 }

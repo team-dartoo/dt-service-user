@@ -57,6 +57,7 @@ public class UserService {
         UserEntity newUser = UserEntity.builder()
                 .userEmail(dto.getUserEmail())
                 .password(passwordEncoder.encode(dto.getPassword()))
+                .passwordSet(true)
                 .role(Role.USER)
                 .gender(dto.getGender())
                 .nickname(dto.getNickname())

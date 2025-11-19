@@ -42,7 +42,7 @@ public class UserController {
     }
 
     //회원 탈퇴
-    //스프링 EL을 통해 deleteUser에 있는 검사 로직을 어노테이션 하나로 대체할 수 있음. (GPT가 알려준거라 일단 주석처리)
+    //스프링 EL을 통해 deleteUser에 있는 검사 로직을 어노테이션 하나로 대체할 수 있음. (일단 주석처리)
     //@PreAuthorize("hasRole('ADMIN') or #userRequestDto.userEmail == authentication.name")
     @DeleteMapping
     public ResponseEntity<Void> delete(
