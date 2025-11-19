@@ -28,7 +28,8 @@ public class FetchKakaoOAuthUserInfo implements FetchOAuthUserInfo{
     public String getNickname() {
         String nickname = root.at("/kakao_account/profile/nickname").asText();
         if( nickname == null || !nickname.isBlank()){
-            return "kakao_"+getProviderId();
+            String fallBack = root.at("/properties/nickname").asText();
+            return fallBack!=null ? fallBack : "kakao_"+getProviderId();
         }
         return nickname;
     }

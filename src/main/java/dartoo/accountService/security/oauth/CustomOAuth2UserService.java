@@ -7,6 +7,7 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.LocalDate;
@@ -44,7 +45,7 @@ import java.util.Map;
 @Service
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
-    private final WebClient.Builder webClientBuilder;
+    private final RestClient restClient = RestClient.create();
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
@@ -80,13 +81,24 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
      */
     private Map<String, Object> fetchGooglePeopleProfile(String accessToken) {
         //API 수동 호출
-        JsonNode root = webClientBuilder.build()
+        JsonNode root = restClient
                 .get()
                 .uri("https://people.googleapis.com/v1/people/me?personFields=birthdays,genders")
-                .headers(h->h.setBearerAuth(accessToken))
+                .header("Authorization", "Bearer " + accessToken)
                 .retrieve()
-                .bodyToMono(JsonNode.class)
-                .block();
+                .body(JsonNode.class);
+
+        /*
+        uriBuilder을 사용하는 방법도 있음
+
+                .uri(uriBuilder -> uriBuilder
+                .scheme("https")
+                .host("people.googleapis.com")
+                .path("/v1/people/me")
+                .queryParam("personFields", "birthdays,genders")
+                .build())
+        일단 여기 한번만 사용하는 것이라 참고용 주석으로만 기재
+         */
 
         //정보 불러오기 실패하면 빈 노드로
         if(root == null || root.isMissingNode()) return Map.of();
