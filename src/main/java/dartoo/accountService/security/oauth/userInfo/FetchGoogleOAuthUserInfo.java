@@ -32,7 +32,11 @@ public class FetchGoogleOAuthUserInfo implements FetchOAuthUserInfo{
     }
 
     public LocalDate getBirthday() {
-        return (LocalDate) attributes.get("birthDate");
+        Object v = attributes.get("birthDate");
+        if (v instanceof String s && !s.isBlank()) {
+            return LocalDate.parse(s); // "YYYY-MM-DD" 포맷 기준
+        }
+        return null;
     }
 
     public Gender getGender() {
