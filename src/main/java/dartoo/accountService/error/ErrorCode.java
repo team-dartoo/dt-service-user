@@ -38,7 +38,8 @@ public enum ErrorCode {
     REFRESH_TOKEN_EXPIRED_JWT(HttpStatus.UNAUTHORIZED, "만료된 리프레시 토큰을 파싱하려 했습니다."),
 
     //OAuth 관련
-    INVALID_PROVIDEER_ID(HttpStatus.BAD_REQUEST, "유효하지 않은 형식의 OAuth Provider ID입니다.");
+    INVALID_PROVIDER_ID(HttpStatus.BAD_REQUEST, "유효하지 않은 형식의 OAuth Provider ID입니다."),
+    OAuth_ACCOUNT_ALREADY_LINKED(HttpStatus.CONFLICT,"이미 해당 계정으로 생성된 OAuth 계정이 있습니다.");
 
     //권한 관련
 //    ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 작업을 수행할 권한이 없습니다.");

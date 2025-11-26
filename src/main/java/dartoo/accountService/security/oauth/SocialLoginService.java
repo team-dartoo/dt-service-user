@@ -16,7 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 import java.util.UUID;
 
-import static dartoo.accountService.error.ErrorCode.INVALID_PROVIDEER_ID;
+import static dartoo.accountService.error.ErrorCode.INVALID_PROVIDER_ID;
+import static dartoo.accountService.error.ErrorCode.OAuth_ACCOUNT_ALREADY_LINKED;
 
 //OAuth 인증 서버에서 불러온 프로필 정보 기반으로 우리 DB에 있는 사용자 조회 + 업데이트 or 인서트
 //컨트롤러/핸들러에서 어떻게 조치를 취해야하는지 알려준다.
@@ -31,7 +32,7 @@ public class SocialLoginService {
     @Transactional
     public SocialLoginResultDto upsertOAuthInfo(FetchOAuthUserInfo userInfo){
         if(userInfo.getProviderId() == null){
-            throw new ApiException(INVALID_PROVIDEER_ID);
+            throw new ApiException(INVALID_PROVIDER_ID);
         }
 
         String newEmail = normalize(userInfo.getEmail());
@@ -58,22 +59,24 @@ public class SocialLoginService {
             Optional<UserEntity> infoByEmail = userEntityRepository.findByUserEmail(newEmail);
             if(infoByEmail.isPresent()){
                 UserEntity userEntity = infoByEmail.get();
-                UserOAuth userOAuth = UserOAuth.builder()
-                        .userEntity(userEntity)
-                        .provider(userInfo.getProvider())
-                        .providerUserId(userInfo.getProviderId())
-                        .providerEmail(newEmail)
-                        .build();
-                userOAuthRepository.save(userOAuth);
-                return new SocialLoginResultDto(userEntity,true);
+                attachUserOAuth(userEntity,userInfo);
+//                UserOAuth userOAuth = UserOAuth.builder()
+//                        .userEntity(userEntity)
+//                        .provider(userInfo.getProvider())
+//                        .providerUserId(userInfo.getProviderId())
+//                        .providerEmail(newEmail)
+//                        .build();
+//                userOAuthRepository.save(userOAuth);
+                return new SocialLoginResultDto(userEntity,false);
             }
         }
+
         //우리 DB에 없는 이메일 정보인 경우
         // -> 신규 가입 유저임을 알리고, 기본 프로필 정보로 OAuth 인증 서버에서 제공한 사용자 프로필 정보 이용
         // 노션 OAuth 로그인 페이지 1-a
         UserEntity newUser = createNewUser(userInfo,newEmail);
         attachUserOAuth(newUser,userInfo);
-        return new SocialLoginResultDto(newUser,false);
+        return new SocialLoginResultDto(newUser,true);
     }
 
     //리팩토링한 UserEntity 빌더
@@ -96,13 +99,30 @@ public class SocialLoginService {
         return userEntityRepository.save(newUser);
     }
 
-    //UserOAuth 테이블에 UserEntity 정보를 연결해서 저장
-    private void attachUserOAuth(UserEntity newUser, FetchOAuthUserInfo userInfo) {
+    //UserOAuth 테이블에 새로운 UserEntity 정보를 연결해서 저장
+    //저장 시 이미 정보가 있는 경우에는 예외를 발생시켜서 종료
+    //(이에 관련해선 노션 OAuth 로그인 3-b 케이스 참조)
+    public void attachUserOAuth(UserEntity owner, FetchOAuthUserInfo userInfo) {
+        //이미 연결된 oAuth 정보는 아닌지 확인
+        Optional<UserOAuth> oAuthInfo =
+                userOAuthRepository.findByProviderAndProviderUserId(userInfo.getProvider(), userInfo.getProviderId());
+        //이미 존재하는 정보라면
+        if(oAuthInfo.isPresent()){
+            UserEntity existUser = oAuthInfo.get().getUserEntity();
+            //이미 존재하는 정보인데, 다른 계정이 만들어져 있다면 연결이 불가능하므로 예외처리
+            //OAuth 로그인 3-b 케이스
+            if(!existUser.getId().equals(owner.getId())){
+                throw new ApiException(OAuth_ACCOUNT_ALREADY_LINKED);
+            }
+            return;
+        }
+
+        //그 외의 케이스 -> 새로운 OAuth 정보를 UserEntity에 연결
         UserOAuth newOAuth = UserOAuth.builder()
-                .userEntity(newUser)
+                .userEntity(owner)
                 .provider(userInfo.getProvider())
                 .providerUserId(userInfo.getProviderId())
-                .providerEmail(userInfo.getEmail())
+                .providerEmail(normalize(userInfo.getEmail()))
                 .build();
         userOAuthRepository.save(newOAuth);
     }

@@ -133,6 +133,7 @@ public class AuthService {
         attachRefreshCookie(response,newRefresh,newExpire);
 
         long refreshTtlLeft = Math.max(0, newExpire.getEpochSecond() - now.getEpochSecond());
+        //장기적인 관점에서는 RefreshToken을 바디에서 빼는 것이 좋다.
         return new TokenResponseDto(newAccess,cfg.getAccessTtlSeconds(),newRefresh, refreshTtlLeft, userEntity.getPasswordSet());
     }
 
