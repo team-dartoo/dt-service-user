@@ -21,7 +21,6 @@ import static dartoo.accountService.error.ErrorCode.USER_NOT_FOUND;
 @Transactional
 public class OnBoardingService {
     private final UserEntityRepository userEntityRepository;
-    private final UserService userService;
     private final PasswordEncoder passwordEncoder;
 
     //비밀번호와 프로필 초기화
