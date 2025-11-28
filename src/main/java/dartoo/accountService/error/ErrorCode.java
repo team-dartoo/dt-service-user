@@ -28,6 +28,7 @@ public enum ErrorCode {
     //사용자 설정 관련
     USER_AGREED_NOT_FOUND(HttpStatus.NOT_FOUND,"사용자 약관 동의 정보를 찾을 수 없습니다."),
     USER_PREFERENCE_NOT_FOUND(HttpStatus.NOT_FOUND,"사용자 설정을 찾을 수 없습니다."),
+    USER_BIRTHDAY_CANNOT_BE_FUTURE(HttpStatus.BAD_REQUEST, "생일은 미래일 수 없습니다."),
 
     //리프레시 토큰 암호화 관련
     HMAC_256_NOT_AVAILABLE(HttpStatus.INTERNAL_SERVER_ERROR, "HMAC-SHA256이 존재하지 않습니다"),
@@ -39,6 +40,7 @@ public enum ErrorCode {
 
     //OAuth 관련
     INVALID_PROVIDER_ID(HttpStatus.BAD_REQUEST, "유효하지 않은 형식의 OAuth Provider ID입니다."),
+    USER_ALREADY_ONBOARDED(HttpStatus.CONFLICT,"이미 온보딩이 완료된 계정입니다."),
     OAuth_ACCOUNT_ALREADY_LINKED(HttpStatus.CONFLICT,"이미 해당 계정으로 생성된 OAuth 계정이 있습니다.");
 
     //권한 관련

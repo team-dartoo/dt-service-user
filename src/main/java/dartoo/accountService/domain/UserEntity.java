@@ -1,5 +1,6 @@
 package dartoo.accountService.domain;
 
+import dartoo.accountService.error.ApiException;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,6 +12,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 import java.time.LocalDate;
+
+import static dartoo.accountService.error.ErrorCode.USER_BIRTHDAY_CANNOT_BE_FUTURE;
 
 @Entity
 @NoArgsConstructor
@@ -72,7 +75,7 @@ public class UserEntity {
             this.nickname = nickname;
         }
         if (birthday != null && birthday.isAfter(LocalDate.now())) {
-            throw new IllegalArgumentException("생일은 미래일 수 없습니다.");
+            throw new ApiException(USER_BIRTHDAY_CANNOT_BE_FUTURE);
         }
         this.birthday = birthday;
         this.gender = gender;

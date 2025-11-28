@@ -15,4 +15,5 @@ public class TokenResponseDtoPublic {
 /*
 실제로 프런트에서 이미 쿠키로 리프레시 토큰을 받는데
 Dto로 다시 주는 건 보안상의 문제가 있을 것 같아서 수정하기 위한 DTO
+-> 추후 수정 예정
  */

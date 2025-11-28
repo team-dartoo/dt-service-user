@@ -1,4 +1,4 @@
-package dartoo.accountService.dto;
+package dartoo.accountService.dto.oauth;
 
 import dartoo.accountService.domain.Gender;
 import dartoo.accountService.domain.SocialProvider;

@@ -1,7 +1,7 @@
 package dartoo.accountService.security.oauth.userInfo;
 
 import dartoo.accountService.domain.SocialProvider;
-import dartoo.accountService.dto.FetchProfileDto;
+import dartoo.accountService.dto.oauth.FetchProfileDto;
 
 public interface FetchOAuthUserInfo {
     String getEmail();
