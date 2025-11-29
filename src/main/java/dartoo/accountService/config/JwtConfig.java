@@ -35,6 +35,7 @@ public class JwtConfig {
     @Value("${app.jwt.refresh-ttl-seconds}")
     private long refreshTtlSeconds;
 
+
     private SecretKey accessKey;
     private SecretKey refreshKey;
 
