@@ -3,6 +3,7 @@ package dartoo.accountService.web;
 import dartoo.accountService.domain.UserEntity;
 import dartoo.accountService.dto.LoginRequestDto;
 import dartoo.accountService.dto.TokenResponseDto;
+import dartoo.accountService.dto.TokenResponseDtoPublic;
 import dartoo.accountService.dto.UserRequestDto;
 import dartoo.accountService.error.ApiException;
 import dartoo.accountService.service.AuthService;
@@ -55,7 +56,7 @@ public class AuthController {
     //자체 로그인 - Access Token은 JSON으로 반환. Refresh Token은 HttpOnly + Secure 쿠키로 반환.
     //리턴 문에는 AccessToken만 있으면 됨.
     @PostMapping("/login")
-    public ResponseEntity<TokenResponseDto> login(@Validated @RequestBody LoginRequestDto dto, HttpServletRequest request, HttpServletResponse response){
+    public ResponseEntity<TokenResponseDtoPublic> login(@Validated @RequestBody LoginRequestDto dto, HttpServletRequest request, HttpServletResponse response){
         //인증 절차 수행
         try {
             Authentication auth = authenticationManager.authenticate(
@@ -68,8 +69,10 @@ public class AuthController {
             String userAgent = Optional.ofNullable(request.getHeader("User-Agent")).orElse("unknown");
             String did = Optional.ofNullable(request.getHeader("X-Device-Id")).orElse("unknown");
 
-            TokenResponseDto tokenResponseDto = authService.loginIssue(email, did, userAgent, response);
-            return ResponseEntity.ok(tokenResponseDto);
+            TokenResponseDto internal = authService.loginIssue(email, did, userAgent, response);
+            TokenResponseDtoPublic publicDto = new TokenResponseDtoPublic(internal.getAccessToken(),
+                    internal.getAccessTokenTtl(), internal.getIsPasswordSet());
+            return ResponseEntity.ok(publicDto);
         } catch (BadCredentialsException e) {
             throw new ApiException(INVALID_CREDENTIALS);
         }
@@ -78,23 +81,27 @@ public class AuthController {
     //앱 이용 중 access, refresh token 재발급
     //required = false -> ApiException으로 오류 처리를 직접 하기 위함
     @PostMapping("/refresh")
-    public ResponseEntity<TokenResponseDto> refresh(@CookieValue(value="refresh_token", required = false) String refreshToken, HttpServletResponse response){
+    public ResponseEntity<TokenResponseDtoPublic> refresh(@CookieValue(value="refresh_token", required = false) String refreshToken, HttpServletResponse response){
         if(refreshToken==null || refreshToken.isBlank()){
             authService.attachRefreshCookie(response,"", Instant.now());
             throw new ApiException(MISSING_REFRESH_TOKEN);
         }
-        TokenResponseDto dto = authService.refresh(refreshToken,false,response);
+        TokenResponseDto internal = authService.refresh(refreshToken,false,response);
+        TokenResponseDtoPublic dto = new TokenResponseDtoPublic(internal.getAccessToken(),
+                internal.getAccessTokenTtl(), internal.getIsPasswordSet());
         return ResponseEntity.ok(dto);
     }
 
     //앱 시작 시 쿠키가 남아 있을 경우 자동 로그인 구현
     @PostMapping("/refresh-restart")
-    public ResponseEntity<TokenResponseDto> refreshRestart(@CookieValue(value="refresh_token", required = false) String refreshToken, HttpServletResponse response){
+    public ResponseEntity<TokenResponseDtoPublic> refreshRestart(@CookieValue(value="refresh_token", required = false) String refreshToken, HttpServletResponse response){
         if(refreshToken==null || refreshToken.isBlank()){
             authService.attachRefreshCookie(response,"", Instant.now());
             throw new ApiException(MISSING_REFRESH_TOKEN);
         }
-        TokenResponseDto dto = authService.refresh(refreshToken,true,response);
+        TokenResponseDto internal = authService.refresh(refreshToken,true,response);
+        TokenResponseDtoPublic dto = new TokenResponseDtoPublic(internal.getAccessToken(),
+                internal.getAccessTokenTtl(), internal.getIsPasswordSet());
         return ResponseEntity.ok(dto);
     }
 

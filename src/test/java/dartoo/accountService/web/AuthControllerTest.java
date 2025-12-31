@@ -220,6 +220,9 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(login)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("accessToken"))
+                //TokenResponseDtoPublic 반환으로 변경된 것 확인
+                .andExpect(jsonPath("$.refreshToken").doesNotExist())
+                .andExpect(jsonPath("$.refreshTokenTtl").doesNotExist())
                 .andReturn();
 
         MockHttpServletResponse resp = result.getResponse();
@@ -273,7 +276,9 @@ class AuthControllerTest {
                         .contentType(APPLICATION_JSON_VALUE)
                         .content(objectMapper.writeValueAsString(login)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").value("accessToken"));
+                .andExpect(jsonPath("$.accessToken").value("accessToken"))
+                .andExpect(jsonPath("$.refreshToken").doesNotExist())
+                .andExpect(jsonPath("$.refreshTokenTtl").doesNotExist());
 
         verify(authService).loginIssue(eq("test@test.com"), eq("unknown"), eq("unknown"), any());
     }
@@ -310,6 +315,8 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(APPLICATION_JSON_VALUE))
                 .andExpect(jsonPath("$.accessToken").value("accessToken"))
+                .andExpect(jsonPath("$.refreshToken").doesNotExist())
+                .andExpect(jsonPath("$.refreshTokenTtl").doesNotExist())
                 .andReturn();
 
         MockHttpServletResponse resp = result.getResponse();

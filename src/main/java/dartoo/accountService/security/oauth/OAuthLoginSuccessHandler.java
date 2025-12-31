@@ -128,7 +128,6 @@ public class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
                     .build();
 
             writeJsonResponse(response,HttpServletResponse.SC_OK,oAuthLoginTokenDto);
-            authService.loginIssue(loginUser.getUserEmail(), deviceId, userAgent, response);
         } catch (ApiException e){
             //handlerExceptionResolver가 내부적으로 Resolver을 돌려보고,
             //GlobalExceptionAdvice 안에 있는 ApiException 관련 Handler을 알아서 호출한다.
