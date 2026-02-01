@@ -1,7 +1,7 @@
 package dartoo.accountService.web;
 
-import dartoo.accountService.dto.AgreedSettingsDto;
-import dartoo.accountService.dto.PreferenceSettingsDto;
+import dartoo.accountService.dto.account.AgreedSettingsDto;
+import dartoo.accountService.dto.account.PreferenceSettingsDto;
 import dartoo.accountService.service.UserSettingsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

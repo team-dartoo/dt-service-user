@@ -1,8 +1,8 @@
 package dartoo.accountService.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dartoo.accountService.dto.AgreedSettingsDto;
-import dartoo.accountService.dto.PreferenceSettingsDto;
+import dartoo.accountService.dto.account.AgreedSettingsDto;
+import dartoo.accountService.dto.account.PreferenceSettingsDto;
 import dartoo.accountService.error.ApiException;
 import dartoo.accountService.error.GlobalExceptionAdvice;
 import dartoo.accountService.service.UserSettingsService;

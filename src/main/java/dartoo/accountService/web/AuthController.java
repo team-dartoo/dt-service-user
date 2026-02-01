@@ -1,10 +1,10 @@
 package dartoo.accountService.web;
 
 import dartoo.accountService.domain.UserEntity;
-import dartoo.accountService.dto.LoginRequestDto;
-import dartoo.accountService.dto.TokenResponseDto;
-import dartoo.accountService.dto.TokenResponseDtoPublic;
-import dartoo.accountService.dto.UserRequestDto;
+import dartoo.accountService.dto.account.LoginRequestDto;
+import dartoo.accountService.dto.account.TokenResponseDto;
+import dartoo.accountService.dto.account.TokenResponseDtoPublic;
+import dartoo.accountService.dto.account.UserRequestDto;
 import dartoo.accountService.error.ApiException;
 import dartoo.accountService.service.AuthService;
 import dartoo.accountService.service.UserService;

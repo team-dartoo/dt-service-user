@@ -35,5 +35,5 @@ public class OnBoardingController {
         return ResponseEntity.ok(responseDto);
     }
 
-    //정보 조회는 기존의 GET /api/users/info 사용하면 됨
+    //정보 조회는 기존의 GET /api/users/info 또는 OAuth 로그인 시에는 OAuthLoginTokenDto를 사용하면 됨
 }

@@ -1,4 +1,4 @@
-package dartoo.accountService.dto;
+package dartoo.accountService.dto.account;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;

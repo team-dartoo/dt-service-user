@@ -1,6 +1,6 @@
 package dartoo.accountService.dto.oauth;
 
-import dartoo.accountService.domain.Gender;
+import dartoo.accountService.domain.enums.Gender;
 import lombok.Builder;
 import lombok.Data;
 import java.time.LocalDate;

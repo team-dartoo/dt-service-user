@@ -1,5 +1,9 @@
 package dartoo.accountService.domain;
 
+import dartoo.accountService.domain.enums.Gender;
+import dartoo.accountService.domain.enums.PlanStatus;
+import dartoo.accountService.domain.enums.PlanType;
+import dartoo.accountService.domain.enums.Role;
 import dartoo.accountService.error.ApiException;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -64,7 +68,18 @@ public class UserEntity {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private UserAgreed agreed;
 
+    //CoreService 구현하기 위해 추가된 속성 - 가장 최신 구독 정보를 User에 저장
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private PlanType plan = PlanType.FREE;
 
+    private Instant planExpireAt;
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private PlanStatus planStatus = PlanStatus.EXPIRED;
+
+    //엔티티 비즈니스 메서드
     public void changePassword(String newPassword) {
         this.password = newPassword;
         this.passwordSet = true;
@@ -88,5 +103,12 @@ public class UserEntity {
     public void attachAgreed(UserAgreed agr) {
         this.agreed = agr;
         agr.setUser(this);
+    }
+
+    //CoreService 구현 위해 추가된 메서드
+    public void updatePlan(PlanType plan, PlanStatus status, Instant expireAt) {
+        this.plan = plan;
+        this.planStatus = status;
+        this.planExpireAt = expireAt;
     }
 }

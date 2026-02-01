@@ -1,9 +1,9 @@
 package dartoo.accountService.security.oauth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dartoo.accountService.domain.SocialProvider;
+import dartoo.accountService.domain.enums.SocialProvider;
 import dartoo.accountService.domain.UserEntity;
-import dartoo.accountService.dto.TokenResponseDto;
+import dartoo.accountService.dto.account.TokenResponseDto;
 import dartoo.accountService.dto.oauth.LinkResponseDto;
 import dartoo.accountService.dto.oauth.OAuthLoginTokenDto;
 import dartoo.accountService.dto.oauth.SocialLoginResultDto;

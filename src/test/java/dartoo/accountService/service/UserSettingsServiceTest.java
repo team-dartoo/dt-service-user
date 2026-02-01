@@ -1,8 +1,10 @@
 package dartoo.accountService.service;
 
 import dartoo.accountService.domain.*;
-import dartoo.accountService.dto.AgreedSettingsDto;
-import dartoo.accountService.dto.PreferenceSettingsDto;
+import dartoo.accountService.domain.enums.Gender;
+import dartoo.accountService.domain.enums.Role;
+import dartoo.accountService.dto.account.AgreedSettingsDto;
+import dartoo.accountService.dto.account.PreferenceSettingsDto;
 import dartoo.accountService.error.ApiException;
 import dartoo.accountService.repository.UserAgreedRepository;
 import dartoo.accountService.repository.UserEntityRepository;

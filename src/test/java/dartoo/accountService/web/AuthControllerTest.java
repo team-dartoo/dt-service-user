@@ -1,12 +1,12 @@
 package dartoo.accountService.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dartoo.accountService.domain.Gender;
-import dartoo.accountService.domain.Role;
+import dartoo.accountService.domain.enums.Gender;
+import dartoo.accountService.domain.enums.Role;
 import dartoo.accountService.domain.UserEntity;
-import dartoo.accountService.dto.LoginRequestDto;
-import dartoo.accountService.dto.TokenResponseDto;
-import dartoo.accountService.dto.UserRequestDto;
+import dartoo.accountService.dto.account.LoginRequestDto;
+import dartoo.accountService.dto.account.TokenResponseDto;
+import dartoo.accountService.dto.account.UserRequestDto;
 import dartoo.accountService.error.ApiException;
 import dartoo.accountService.error.GlobalExceptionAdvice;
 import dartoo.accountService.service.AuthService;

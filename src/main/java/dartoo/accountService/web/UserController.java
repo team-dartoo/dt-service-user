@@ -1,8 +1,8 @@
 package dartoo.accountService.web;
 
-import dartoo.accountService.dto.ChangePasswordDto;
-import dartoo.accountService.dto.UserRequestDto;
-import dartoo.accountService.dto.UserResponseDto;
+import dartoo.accountService.dto.account.ChangePasswordDto;
+import dartoo.accountService.dto.account.UserRequestDto;
+import dartoo.accountService.dto.account.UserResponseDto;
 import dartoo.accountService.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

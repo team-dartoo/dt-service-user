@@ -1,6 +1,6 @@
 package dartoo.accountService.dto.oauth;
 
-import dartoo.accountService.domain.Gender;
+import dartoo.accountService.domain.enums.Gender;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

@@ -1,6 +1,6 @@
-package dartoo.accountService.dto;
+package dartoo.accountService.dto.account;
 
-import dartoo.accountService.domain.Gender;
+import dartoo.accountService.domain.enums.Gender;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 

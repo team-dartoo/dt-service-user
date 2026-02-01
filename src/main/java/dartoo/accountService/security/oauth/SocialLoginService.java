@@ -1,6 +1,6 @@
 package dartoo.accountService.security.oauth;
 
-import dartoo.accountService.domain.Role;
+import dartoo.accountService.domain.enums.Role;
 import dartoo.accountService.domain.UserEntity;
 import dartoo.accountService.domain.UserOAuth;
 import dartoo.accountService.dto.oauth.SocialLoginResultDto;

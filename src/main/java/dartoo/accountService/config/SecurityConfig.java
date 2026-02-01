@@ -60,7 +60,7 @@ public class SecurityConfig {
         //   그리고 인증 성공/실패 시 후처리(successHandler / failureHandler)를 여기서 지정
         http.oauth2Login(oauth -> oauth
                 .userInfoEndpoint(userInfo -> userInfo
-                        .userService(customOAuth2UserService)   // provider별(profil 구조) userInfo → 우리 도메인 유저 정보로 매핑
+                        .userService(customOAuth2UserService)   // provider별(profile 구조) userInfo → 우리 도메인 유저 정보로 매핑
                 )
                 .successHandler(oAuthLoginSuccessHandler)       // 소셜 로그인 성공 시 → 우리 JWT 발급
                 .failureHandler(oAuthLoginFailureHandler)       // 실패 처리 → 401 JSON 응답

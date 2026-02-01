@@ -1,4 +1,4 @@
-package dartoo.accountService.dto;
+package dartoo.accountService.dto.account;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

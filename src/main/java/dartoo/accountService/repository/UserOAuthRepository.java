@@ -1,6 +1,6 @@
 package dartoo.accountService.repository;
 
-import dartoo.accountService.domain.SocialProvider;
+import dartoo.accountService.domain.enums.SocialProvider;
 import dartoo.accountService.domain.UserEntity;
 import dartoo.accountService.domain.UserOAuth;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -1,4 +1,4 @@
-package dartoo.accountService.domain;
+package dartoo.accountService.domain.enums;
 
 public enum Gender {
     MALE, FEMALE, UNKNOWN;

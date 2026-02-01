@@ -1,6 +1,6 @@
 package dartoo.accountService.security.oauth.userInfo;
 
-import dartoo.accountService.domain.SocialProvider;
+import dartoo.accountService.domain.enums.SocialProvider;
 import dartoo.accountService.dto.oauth.FetchProfileDto;
 
 public interface FetchOAuthUserInfo {

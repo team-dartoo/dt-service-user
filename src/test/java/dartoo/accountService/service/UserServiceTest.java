@@ -1,11 +1,11 @@
 package dartoo.accountService.service;
 
-import dartoo.accountService.domain.Gender;
-import dartoo.accountService.domain.Role;
+import dartoo.accountService.domain.enums.Gender;
+import dartoo.accountService.domain.enums.Role;
 import dartoo.accountService.domain.UserEntity;
-import dartoo.accountService.dto.ChangePasswordDto;
-import dartoo.accountService.dto.UserRequestDto;
-import dartoo.accountService.dto.UserResponseDto;
+import dartoo.accountService.dto.account.ChangePasswordDto;
+import dartoo.accountService.dto.account.UserRequestDto;
+import dartoo.accountService.dto.account.UserResponseDto;
 import dartoo.accountService.error.ApiException;
 import dartoo.accountService.repository.RefreshTokenRepository;
 import dartoo.accountService.repository.UserEntityRepository;

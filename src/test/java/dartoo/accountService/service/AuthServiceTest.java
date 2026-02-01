@@ -2,9 +2,9 @@ package dartoo.accountService.service;
 
 import dartoo.accountService.config.JwtConfig;
 import dartoo.accountService.domain.RefreshToken;
-import dartoo.accountService.domain.Role;
+import dartoo.accountService.domain.enums.Role;
 import dartoo.accountService.domain.UserEntity;
-import dartoo.accountService.dto.TokenResponseDto;
+import dartoo.accountService.dto.account.TokenResponseDto;
 import dartoo.accountService.error.ApiException;
 import dartoo.accountService.repository.RefreshTokenRepository;
 import dartoo.accountService.repository.UserEntityRepository;

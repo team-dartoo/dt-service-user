@@ -1,7 +1,7 @@
 package dartoo.accountService.repository;
 
 import dartoo.accountService.domain.RefreshToken;
-import dartoo.accountService.domain.Role;
+import dartoo.accountService.domain.enums.Role;
 import dartoo.accountService.domain.UserEntity;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;

@@ -1,6 +1,6 @@
-package dartoo.accountService.dto;
+package dartoo.accountService.dto.account;
 
-import dartoo.accountService.domain.Gender;
+import dartoo.accountService.domain.enums.Gender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

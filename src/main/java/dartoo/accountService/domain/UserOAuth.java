@@ -1,5 +1,6 @@
 package dartoo.accountService.domain;
 
+import dartoo.accountService.domain.enums.SocialProvider;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

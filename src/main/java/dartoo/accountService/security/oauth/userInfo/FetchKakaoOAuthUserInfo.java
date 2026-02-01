@@ -2,7 +2,7 @@ package dartoo.accountService.security.oauth.userInfo;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dartoo.accountService.domain.SocialProvider;
+import dartoo.accountService.domain.enums.SocialProvider;
 import dartoo.accountService.dto.oauth.FetchProfileDto;
 
 import java.util.Map;
