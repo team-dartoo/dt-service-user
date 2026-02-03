@@ -86,24 +86,21 @@ public class CorpBookmarkService {
                 .build();
     }
 
-    //권한 확인 후, 사용자의 북마크를 삭제
+    //사용자의 북마크를 삭제
+    //관리자가 삭제하게 만들어야 할 경우, userId를 인수로 받든지 해야할 것 같다.
     public void deleteBookmark(String corpId){
         UserEntity user = getCurrentUser();
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        String sessionUsername = auth.getName();
-
-        //요청자가 본인인지, 요청자의 역할이 관리자인지 확인
-        boolean isOwner = sessionUsername.equals(user.getUserEmail());
-        boolean isAdmin = auth.getAuthorities().stream()
-                .anyMatch(role -> role.getAuthority().equals("ROLE_"+Role.ADMIN.name()));
-
-        if(!isOwner && !isAdmin){
-            throw new AccessDeniedException("북마크를 삭제할 권한이 없습니다.");
-        }
 
         long deleted = userCorpBookmarkRepository.deleteByUserIdAndCorpId(user.getId(),corpId);
         if(deleted==0){
             throw new ApiException(BOOKMARK_NOT_FOUND);
         }
     }
+
+//    public void adminDeleteBookmark(Long userId, String corpId) {
+//        long deleted = userCorpBookmarkRepository.deleteByUserIdAndCorpId(userId, corpId);
+//        if (deleted == 0) {
+//            throw new ApiException(BOOKMARK_NOT_FOUND);
+//        }
+//    }
 }
