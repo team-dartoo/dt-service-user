@@ -23,10 +23,10 @@ public class JwtConfig {
     @Value("${app.jwt.access-secret:#{null}}")
     private String accessSecret;
 
-    @Value("${app.jwt.refresh-secret:#{null}")
+    @Value("${app.jwt.refresh-secret:#{null}}")
     private String refreshSecret;
 
-    @Value("${app.jwt.refresh-pepper:#{null}")
+    @Value("${app.jwt.refresh-pepper:#{null}}")
     private String refreshPepper;
 
     @Value("${app.jwt.access-ttl-seconds}")
@@ -34,7 +34,6 @@ public class JwtConfig {
 
     @Value("${app.jwt.refresh-ttl-seconds}")
     private long refreshTtlSeconds;
-
 
     private SecretKey accessKey;
     private SecretKey refreshKey;
@@ -49,6 +48,15 @@ public class JwtConfig {
 
         accessKey = new SecretKeySpec(acc, "HmacSHA256");
         refreshKey = new SecretKeySpec(ref, "HmacSHA256");
+        /*
+        getBytes vs parseHex
+
+        byte[] accessBytes = HexFormat.of().parseHex(accessSecretHex.trim());
+        byte[] refreshBytes = HexFormat.of().parseHex(refreshSecretHex.trim());
+
+        this.accessKey = Keys.hmacShaKeyFor(accessBytes);
+        this.refreshKey = Keys.hmacShaKeyFor(refreshBytes);
+         */
     }
 }
 /*
