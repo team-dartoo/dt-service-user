@@ -10,6 +10,7 @@ import dartoo.accountService.error.ApiException;
 import dartoo.accountService.repository.UserEntityRepository;
 import dartoo.accountService.repository.core.UserCorpBookmarkRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,6 +25,7 @@ import static dartoo.accountService.error.ErrorCode.*;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class CorpBookmarkService {
 
     private final UserCorpBookmarkRepository userCorpBookmarkRepository;
@@ -95,6 +97,7 @@ public class CorpBookmarkService {
         if(deleted==0){
             throw new ApiException(BOOKMARK_NOT_FOUND);
         }
+        log.info("User {} deleted bookmark id #{} - {}.",getSessionEmail(),deleted,corpId);
     }
 
 //    public void adminDeleteBookmark(Long userId, String corpId) {

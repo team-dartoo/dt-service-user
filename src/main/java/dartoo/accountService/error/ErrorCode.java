@@ -48,7 +48,13 @@ public enum ErrorCode {
 
     //북마크 관련
     DUPLICATE_BOOKMARK(HttpStatus.CONFLICT,"이미 추가된 북마크입니다."),
-    BOOKMARK_NOT_FOUND(HttpStatus.NOT_FOUND,"찾을 수 없는 북마크입니다.");
+    BOOKMARK_NOT_FOUND(HttpStatus.NOT_FOUND,"찾을 수 없는 북마크입니다."),
+
+    //검색 기록 관련
+    HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 검색 기록입니다."),
+
+    //사용자 알림 관련
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 알림입니다.");
     private final HttpStatus status;
     private final String message;
 }
