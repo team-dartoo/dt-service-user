@@ -43,7 +43,7 @@ public class SearchHistoryService {
         Instant now = Instant.now();
 
         //기존의 검색 기록 찾기 -> 존재하는 경우, 검색시각 업데이트, 없으면 새롭게 생성
-        UserSearchHistory history = userSearchHistoryRepository.findByUserIdAndQuery(user.getId(),request.getQuery())
+        UserSearchHistory history = userSearchHistoryRepository.findByUser_IdAndQuery(user.getId(),request.getQuery())
                 .map( searched->{
                     searched.search(now);
                     return searched;
@@ -73,7 +73,7 @@ public class SearchHistoryService {
         UserEntity user = getCurrentUser();
         cleanup(user.getId());
         List<UserSearchHistory> histories = userSearchHistoryRepository
-                .findAllByUserIdOrderBySearchedAtDesc(user.getId(), PageRequest.of(0,page));
+                .findAllByUser_IdOrderBySearchedAtDesc(user.getId(), PageRequest.of(0,page));
         return SearchHistoryListResponse.builder()
                 .historyList(histories.stream().map(h -> SearchHistoryResponse.builder()
                                 .historyId(h.getId())
@@ -86,7 +86,7 @@ public class SearchHistoryService {
     //특정 검색 기록만 제거
     public void deleteOne(Long historyId){
         UserEntity user = getCurrentUser();
-        UserSearchHistory history = userSearchHistoryRepository.findByIdAndUserId(historyId,user.getId())
+        UserSearchHistory history = userSearchHistoryRepository.findByIdAndUser_Id(historyId,user.getId())
                 .orElseThrow(()->new ApiException(HISTORY_NOT_FOUND));
 
         userSearchHistoryRepository.delete(history);
@@ -96,7 +96,7 @@ public class SearchHistoryService {
     //검색 기록 전체 제거
     public void deleteAll(){
         UserEntity user = getCurrentUser();
-        Long amount = userSearchHistoryRepository.deleteAllByUserId(user.getId());
+        Long amount = userSearchHistoryRepository.deleteAllByUser_Id(user.getId());
         log.info("User {} deleted {} search histories.",getSessionEmail(),amount);
     }
 
@@ -105,7 +105,7 @@ public class SearchHistoryService {
         Instant deadline = Instant.now().minus(SEARCH_HISTORY_TTL);
         userSearchHistoryRepository.deleteBySearchedAtBefore(deadline);
         //그래도 30개가 넘을 경우, 나머지 삭제해서 일정 수량 유지
-        List<UserSearchHistory> all = userSearchHistoryRepository.findAllByUserIdOrderBySearchedAtDesc(id);
+        List<UserSearchHistory> all = userSearchHistoryRepository.findAllByUser_IdOrderBySearchedAtDesc(id);
         if(all.size()>MAX_SEARCH_HISTORY_COUNT){
             userSearchHistoryRepository.deleteAll(all.subList(MAX_SEARCH_HISTORY_COUNT,all.size()));
         }

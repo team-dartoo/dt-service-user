@@ -1,4 +1,4 @@
-package dartoo.accountService.service;
+package dartoo.accountService.service.scheduler;
 
 import dartoo.accountService.repository.RefreshTokenRepository;
 import lombok.RequiredArgsConstructor;

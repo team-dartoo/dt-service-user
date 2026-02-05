@@ -54,7 +54,18 @@ public enum ErrorCode {
     HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 검색 기록입니다."),
 
     //사용자 알림 관련
-    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 알림입니다.");
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 알림입니다."),
+
+    //플랜 관련
+    INVALID_UPDATE_PLAN_ACTION(HttpStatus.BAD_REQUEST, "잘못된 플랜 업데이트 방식입니다."),
+    INVALID_PLAN_UPDATE_REQUEST(HttpStatus.BAD_REQUEST, "구독/구독연장 plan은 PREMIUM만 가능합니다."),
+    INVALID_PLAN_DURATION(HttpStatus.BAD_REQUEST,"SUBSCRIBE/RENEW 요청에는 duration이 필수입니다."),
+    PLAN_TO_CANCEL_NOT_FOUND(HttpStatus.NOT_FOUND,"취소할 플랜을 찾을 수 없습니다."),
+    INVALID_RENEW_REQUEST(HttpStatus.BAD_REQUEST,"잘못된 갱신 요청입니다"),
+    ALREADY_RENEWED(HttpStatus.BAD_REQUEST, "이미 갱신된 플랜입니다"),
+    RENEW_NOT_ALLOWED_YET(HttpStatus.BAD_REQUEST, "아직 연장 가능한 기간이 아닙니다."),
+    INVALID_RENEW_DURATION(HttpStatus.BAD_REQUEST, "잘못된 연장 기간입니다"),
+    ALREADY_SUBSCRIBED(HttpStatus.BAD_REQUEST,"이미 구독한 사용자는 구독을 갱신해야 합니다.");
     private final HttpStatus status;
     private final String message;
 }

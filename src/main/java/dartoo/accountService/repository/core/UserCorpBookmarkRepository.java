@@ -7,9 +7,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface UserCorpBookmarkRepository extends JpaRepository<UserCorpBookmark, Long> {
-    List<UserCorpBookmark> findAllByUserIdOrderByCreatedAtDesc(Long id);
+    List<UserCorpBookmark> findAllByUser_IdOrderByCreatedAtDesc(Long id);
 
-    boolean existsByUserIdAndCorpId(Long id, String corpId);
+    boolean existsByUser_IdAndCorpId(Long id, String corpId);
 
-    long deleteByUserIdAndCorpId(Long id, String corpId);
+    long deleteByUser_IdAndCorpId(Long id, String corpId);
 }

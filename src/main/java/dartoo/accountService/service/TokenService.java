@@ -31,15 +31,23 @@ public class TokenService {
     }
 
     //역할 추가 + 인수 수 줄이기 리팩토링 오버로드 용
+    // planExpireAt은 Instant 타입.
+    // JWT claim에는 객체를 넣을 수 없으므로 숫자(long)로 변환해야 함.
+    // getEpochSecond() → 1970-01-01T00:00:00Z 기준 경과 초(long).
     public String createAccessToken(UserEntity user, Instant now) {
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .setIssuer(cfg.getIssuer())
                 .setSubject(user.getUserEmail()) //변경 불가능하니까 이메일로.
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(now.plusSeconds(cfg.getAccessTtlSeconds())))
                 .claim("nickname",user.getNickname())
                 .claim("roles",user.getRole().name())
-                .signWith(cfg.getAccessKey(), SignatureAlgorithm.HS256)
+                .claim("plan",user.getPlan().name())
+                .claim("planStatus",user.getPlanStatus().name());
+
+        if(user.getPlanExpireAt()!=null) builder.claim("planExpireAt",user.getPlanExpireAt().getEpochSecond());
+
+        return builder.signWith(cfg.getAccessKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 

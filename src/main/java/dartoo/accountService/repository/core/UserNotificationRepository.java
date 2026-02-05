@@ -9,7 +9,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UserNotificationRepository extends JpaRepository<UserNotification, Long> {
-    Optional<UserNotification> findByIdAndUserId(Long id, Long userId);
+    Optional<UserNotification> findByIdAndUser_Id(Long id, Long userId);
 
-    List<UserNotification> findAllByUserIdAndCreatedAtAfterAndStatusNotOrderByCreatedAtDesc(Long userId, Instant createdAtAfter, NotificationStatus status);
+    List<UserNotification> findAllByUser_IdAndCreatedAtAfterAndStatusNotOrderByCreatedAtDesc(Long userId, Instant createdAtAfter, NotificationStatus status);
+
+    long deleteCreatedAtBefore(Instant deadline);
 }

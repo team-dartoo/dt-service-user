@@ -47,7 +47,7 @@ public class CorpBookmarkService {
     public BookmarkListResponse listCorpBookmark(){
         UserEntity user = getCurrentUser();
 
-        List<UserCorpBookmark> bookmarks = userCorpBookmarkRepository.findAllByUserIdOrderByCreatedAtDesc(user.getId());
+        List<UserCorpBookmark> bookmarks = userCorpBookmarkRepository.findAllByUser_IdOrderByCreatedAtDesc(user.getId());
         List<BookmarkResponse> corpList = new ArrayList<>();
 
         for(UserCorpBookmark bookmark : bookmarks) {
@@ -69,7 +69,7 @@ public class CorpBookmarkService {
     public BookmarkResponse addCorpBookmark(BookmarkCreateRequest request){
         UserEntity user = getCurrentUser();
 
-        if(userCorpBookmarkRepository.existsByUserIdAndCorpId(user.getId(),request.getCorpId())){
+        if(userCorpBookmarkRepository.existsByUser_IdAndCorpId(user.getId(),request.getCorpId())){
             throw new ApiException(DUPLICATE_BOOKMARK);
         }
 
@@ -93,7 +93,7 @@ public class CorpBookmarkService {
     public void deleteBookmark(String corpId){
         UserEntity user = getCurrentUser();
 
-        long deleted = userCorpBookmarkRepository.deleteByUserIdAndCorpId(user.getId(),corpId);
+        long deleted = userCorpBookmarkRepository.deleteByUser_IdAndCorpId(user.getId(),corpId);
         if(deleted==0){
             throw new ApiException(BOOKMARK_NOT_FOUND);
         }

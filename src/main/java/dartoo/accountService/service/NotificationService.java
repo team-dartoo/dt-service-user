@@ -56,7 +56,7 @@ public class NotificationService {
     //DB에 알림 읽음으로 표시
     public NotificationResponse markAsRead(Long id){
         UserEntity user = getCurrentUser();
-        UserNotification notification = userNotificationRepository.findByIdAndUserId(id,user.getId())
+        UserNotification notification = userNotificationRepository.findByIdAndUser_Id(id,user.getId())
                 .orElseThrow(()->new ApiException(NOTIFICATION_NOT_FOUND));
         notification.markRead(Instant.now());
         return NotificationResponse.builder()
@@ -77,7 +77,7 @@ public class NotificationService {
 
         //삭제 처리가 되지 않은 90일 이내의 알림을 내림차순으로 정렬해서 불러오기
         List<UserNotification> notifications = userNotificationRepository
-                .findAllByUserIdAndCreatedAtAfterAndStatusNotOrderByCreatedAtDesc(user.getId(),deadline,NotificationStatus.DELETED);
+                .findAllByUser_IdAndCreatedAtAfterAndStatusNotOrderByCreatedAtDesc(user.getId(),deadline,NotificationStatus.DELETED);
 
         return NotificationListResponse.builder()
                 .notificationList(notifications.stream().map(n->NotificationResponse.builder()
@@ -94,7 +94,7 @@ public class NotificationService {
     //알림 삭제 (소프트 삭제)
     public void delete(Long id){
         UserEntity user = getCurrentUser();
-        UserNotification notification = userNotificationRepository.findByIdAndUserId(id, user.getId())
+        UserNotification notification = userNotificationRepository.findByIdAndUser_Id(id, user.getId())
                 .orElseThrow(()->new ApiException(NOTIFICATION_NOT_FOUND));
         //소프트 삭제
         notification.markDeleted();
@@ -113,3 +113,8 @@ public class NotificationService {
                 .orElseThrow(()->new ApiException(USER_NOT_FOUND));
     }
 }
+/*
+90일이 지나면 읽지 않아도 삭제된다.
+90일이 지나지 않아도 알림 삭제 버튼을 누르면,
+소프트 삭제되어, 사용자가 호출하면 보이지 않는다.
+ */

@@ -29,6 +29,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.*;
 
+/*
+20260205 - 액세스 토큰 발급 함수 변경 후 테스트 완료
+ */
 @ExtendWith(MockitoExtension.class)
 public class AuthServiceTest {
 
@@ -121,7 +124,9 @@ public class AuthServiceTest {
                 .build();
 
         //반환값을 given으로 정의
-        given(tokenService.createAccessToken(testUser.getUserEmail(),testUser.getNickname(),FIXED,testUser.getRole()))
+        //given(tokenService.createAccessToken(testUser.getUserEmail(),testUser.getNickname(),FIXED,testUser.getRole()))
+        //        .willReturn(accessToken);
+        given(tokenService.createAccessToken(testUser,FIXED))
                 .willReturn(accessToken);
         given(tokenService.createRefreshToken(testUser.getUserEmail(),did,FIXED)).willReturn(refreshToken);
         given(refreshTokenRepository.findAllByUserEntityAndRevokedAtIsNullAndExpiredAtAfter(testUser,FIXED))
@@ -172,7 +177,7 @@ public class AuthServiceTest {
                 .hasFieldOrPropertyWithValue("errorCode", USER_NOT_FOUND);
 
         //예외가 발생했으니 토큰 생성 로직은 실행되지 않아야 한다.
-        then(tokenService).should(never()).createAccessToken(any(), any(), any(), any());
+        then(tokenService).should(never()).createAccessToken(any(), any());
     }
 
     @DisplayName("Refresh Token 회전 성공 (일반 갱신)")
@@ -198,7 +203,7 @@ public class AuthServiceTest {
 
         given(userEntityRepository.findByUserEmail(testUser.getUserEmail())).willReturn(Optional.of(testUser));
         given(refreshTokenRepository.findByUserEntityAndToken(eq(testUser),any())).willReturn(Optional.of(rt));
-        given(tokenService.createAccessToken(testUser.getUserEmail(),testUser.getNickname(),FIXED,testUser.getRole())).willReturn(newAccess);
+        given(tokenService.createAccessToken(testUser,FIXED)).willReturn(newAccess);
         given(tokenService.createRefreshTokenFixed(eq(testUser.getUserEmail()),eq(did),any())).willReturn(newRefreshToken);
 
         //when
@@ -239,7 +244,7 @@ public class AuthServiceTest {
 
         given(userEntityRepository.findByUserEmail(testUser.getUserEmail())).willReturn(Optional.of(testUser));
         given(refreshTokenRepository.findByUserEntityAndToken(eq(testUser),any())).willReturn(Optional.of(rt));
-        given(tokenService.createAccessToken(testUser.getUserEmail(),testUser.getNickname(),FIXED,testUser.getRole())).willReturn(newAccess);
+        given(tokenService.createAccessToken(testUser,FIXED)).willReturn(newAccess);
         given(tokenService.createRefreshToken(eq(testUser.getUserEmail()),eq(did),any())).willReturn(newRefreshToken);
 
         //when
