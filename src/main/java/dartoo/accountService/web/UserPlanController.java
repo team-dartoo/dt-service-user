@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/user/plan")
+@RequestMapping("/api/users/plan")
 public class UserPlanController {
     private final UserPlanService userPlanService;
 
