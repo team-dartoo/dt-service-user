@@ -21,6 +21,7 @@ import java.time.Instant;
                 @Index(name = "idx_user_notif_user_created", columnList = "user_id, created_at DESC")
         }
 )
+@Entity
 public class UserNotification {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)

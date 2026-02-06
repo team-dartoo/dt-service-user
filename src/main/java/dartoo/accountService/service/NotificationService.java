@@ -92,13 +92,31 @@ public class NotificationService {
     }
 
     //알림 삭제 (소프트 삭제)
-    public void delete(Long id){
+    public void deleteOne(Long id){
         UserEntity user = getCurrentUser();
         UserNotification notification = userNotificationRepository.findByIdAndUser_Id(id, user.getId())
                 .orElseThrow(()->new ApiException(NOTIFICATION_NOT_FOUND));
         //소프트 삭제
         notification.markDeleted();
         log.info("User {} deleted notification id #{} - {}.",getSessionEmail(),id,notification.getTitle());
+    }
+
+    //알림 모두 삭제 (소프트 삭제)
+    public void deleteAll(){
+        UserEntity user = getCurrentUser();
+
+        //일일이 돌면서 쿼리 발생시키면 성능 저하 우려
+//        List<UserNotification> notifications = userNotificationRepository.findAllByUser_Id((user.getId()));
+//        //소프트 삭제
+//        for(UserNotification notification : notifications){
+//            notification.markDeleted();
+//        }
+
+        //한번에 벌크 쿼리로 처리
+        Instant deadline = Instant.now().minus(NOTIFICATION_TTL);
+        int notifications = userNotificationRepository.softDeleteAllVisible(user.getId(),deadline,NotificationStatus.DELETED);
+
+        log.info("User {} deleted total {} number of notifications",getSessionEmail(),notifications);
     }
 
     private String getSessionEmail(){
@@ -117,4 +135,5 @@ public class NotificationService {
 90일이 지나면 읽지 않아도 삭제된다.
 90일이 지나지 않아도 알림 삭제 버튼을 누르면,
 소프트 삭제되어, 사용자가 호출하면 보이지 않는다.
+-> 스케줄러에 의해 90일이 지난 알림은 자동으로 삭제된다.
  */

@@ -23,7 +23,7 @@ public class NotificationJanitor {
         Instant deadline = Instant.now().minus(NOTIFICATION_TTL);
         long deleted = userNotificationRepository.deleteCreatedAtBefore(deadline);
         if (deleted > 0) {
-            log.info("생성 90일 초과 알림 {}개 hard delete", deleted);
+            log.info("생성 90일 초과 알림 {}개 hard deleteOne", deleted);
         }
     }
 }

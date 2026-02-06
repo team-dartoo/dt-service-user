@@ -67,13 +67,13 @@ public class SearchHistoryService {
     }
 
     //검색 기록 전체 읽기
-    //@param int page -> 최근 검색어 중 총 몇개를 불러올 지, 없으면 30개 조회
+    //@param int limit -> 최근 검색어 중 총 몇개를 불러올 지, 없으면 30개 조회
     @Transactional(readOnly = true)
-    public SearchHistoryListResponse readHistory(int page){
+    public SearchHistoryListResponse readHistory(int limit){
         UserEntity user = getCurrentUser();
         cleanup(user.getId());
         List<UserSearchHistory> histories = userSearchHistoryRepository
-                .findAllByUser_IdOrderBySearchedAtDesc(user.getId(), PageRequest.of(0,page));
+                .findAllByUser_IdOrderBySearchedAtDesc(user.getId(), PageRequest.of(0,limit));
         return SearchHistoryListResponse.builder()
                 .historyList(histories.stream().map(h -> SearchHistoryResponse.builder()
                                 .historyId(h.getId())
