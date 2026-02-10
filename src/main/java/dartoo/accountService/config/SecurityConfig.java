@@ -1,8 +1,12 @@
 package dartoo.accountService.config;
 
+import dartoo.accountService.error.JwtAuthenticationEntryPoint;
+import dartoo.accountService.security.oauth.CustomOAuth2UserService;
+import dartoo.accountService.security.oauth.OAuthLoginFailureHandler;
+import dartoo.accountService.security.oauth.OAuthLoginSuccessHandler;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -16,12 +20,13 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @EnableMethodSecurity
 @Configuration
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtAuthenticationEntryPoint jwtEntryPoint;
 
     @Bean
     public PasswordEncoder bCryptPasswordEncoder() {
@@ -30,19 +35,36 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtDecoder decoder,
-                                            JwtAuthenticationConverter conv) throws Exception {
+                                            JwtAuthenticationConverter conv, CustomOAuth2UserService customOAuth2UserService,
+                                            OAuthLoginSuccessHandler oAuthLoginSuccessHandler,
+                                            OAuthLoginFailureHandler oAuthLoginFailureHandler) throws Exception {
         http.authorizeHttpRequests(reg->reg
                 //나머지는 추후에 role별로 추가 설정
                 .requestMatchers("/api/users/**").authenticated() //회원 정보 관련이니까
                 .requestMatchers("/api/auth/**").permitAll() //로그인 관련이니까.
+                .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll() //oauth2 로그인 관련
                 .anyRequest().authenticated());
         http.sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.csrf(AbstractHttpConfigurer::disable);
         http.oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.decoder(decoder)
                 .jwtAuthenticationConverter(conv))); //자체 JwtAuthFilter.java 불필요하게 처리
 
+        //JWT 인증 실패 예외 처리
+        http.exceptionHandling(ex -> ex.authenticationEntryPoint(jwtEntryPoint));
         http.cors(Customizer.withDefaults()); //나중에 추가 설정
 
+        // OAuth2 Login 설정 (google / naver / kakao)
+        // - /oauth2/authorization/{provider} 진입 → provider 로그인 페이지로 리다이렉트
+        // - provider가 redirect_uri로 code 전달 → Spring이 토큰 교환 + 사용자 프로필 조회까지 자동 처리
+        // - 조회한 사용자 프로필로 Authentication을 만들 때 어떤 User 객체를 쓸지(userService)
+        //   그리고 인증 성공/실패 시 후처리(successHandler / failureHandler)를 여기서 지정
+        http.oauth2Login(oauth -> oauth
+                .userInfoEndpoint(userInfo -> userInfo
+                        .userService(customOAuth2UserService)   // provider별(profile 구조) userInfo → 우리 도메인 유저 정보로 매핑
+                )
+                .successHandler(oAuthLoginSuccessHandler)       // 소셜 로그인 성공 시 → 우리 JWT 발급
+                .failureHandler(oAuthLoginFailureHandler)       // 실패 처리 → 401 JSON 응답
+        );
         return http.build();
     }
 

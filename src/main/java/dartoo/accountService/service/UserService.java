@@ -1,22 +1,27 @@
 package dartoo.accountService.service;
 
-import dartoo.accountService.domain.Role;
+import dartoo.accountService.domain.RefreshToken;
+import dartoo.accountService.domain.enums.Role;
 import dartoo.accountService.domain.UserEntity;
-import dartoo.accountService.dto.ChangePasswordDto;
-import dartoo.accountService.dto.UserRequestDto;
-import dartoo.accountService.dto.UserResponseDto;
+import dartoo.accountService.dto.account.ChangePasswordDto;
+import dartoo.accountService.dto.account.UserRequestDto;
+import dartoo.accountService.dto.account.UserResponseDto;
+import dartoo.accountService.error.ApiException;
 import dartoo.accountService.repository.RefreshTokenRepository;
 import dartoo.accountService.repository.UserEntityRepository;
 import dartoo.accountService.repository.UserOAuthRepository;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.List;
+
+import static dartoo.accountService.error.ErrorCode.*;
 
 @Service
 @RequiredArgsConstructor
@@ -47,11 +52,12 @@ public class UserService {
     //신규 회원 가입
     public Long addUser(UserRequestDto dto){
         if(userEntityRepository.existsByUserEmail(dto.getUserEmail())){
-            throw new IllegalArgumentException("Email already exists");
+            throw new ApiException(USER_ALREADY_EXISTS);
         }
         UserEntity newUser = UserEntity.builder()
                 .userEmail(dto.getUserEmail())
                 .password(passwordEncoder.encode(dto.getPassword()))
+                .passwordSet(true)
                 .role(Role.USER)
                 .gender(dto.getGender())
                 .nickname(dto.getNickname())
@@ -62,7 +68,7 @@ public class UserService {
 
     public UserEntity getUserById(Long id) {
         return userEntityRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+                .orElseThrow(() -> new ApiException(USER_NOT_FOUND));
     }
 
     //회원 정보 조회
@@ -70,15 +76,23 @@ public class UserService {
     public UserResponseDto readUser(){
         String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         UserEntity user = userEntityRepository.findByUserEmail(userEmail)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                .orElseThrow(() -> new ApiException(USER_NOT_FOUND));
         return new UserResponseDto(user.getUserEmail(),user.getNickname(),user.getBirthday(),user.getGender());
     }
 
     //회원 정보 수정
     public UserResponseDto updateUser(UserRequestDto dto){
         String email = getSessionEmail();
+
+        // 보안 검증: DTO의 이메일이 있다면 세션 이메일과 일치하는지 확인
+        if (dto.getUserEmail() != null && !dto.getUserEmail().isBlank()) {
+            if (!email.equals(dto.getUserEmail())) {
+                throw new AccessDeniedException("본인의 정보만 수정할 수 있습니다.");
+            }
+        }
+
         UserEntity user = userEntityRepository.findByUserEmail(email)
-                .orElseThrow(()->new UsernameNotFoundException("User Not Found"));
+                .orElseThrow(()->new ApiException(USER_NOT_FOUND));
         user.changeProfile(dto.getNickname(), dto.getBirthday(), dto.getGender());
         //userEntityRepository.save(user); -> save가 없어도 수정하면 더티체킹으로 알아서 업데이트 된다.
         //UI에 바로 업데이트할 수 있게.
@@ -89,15 +103,23 @@ public class UserService {
     public void changePassword(ChangePasswordDto dto){
         String email = getSessionEmail();
         UserEntity user = userEntityRepository.findByUserEmail(email)
-                .orElseThrow(()->new UsernameNotFoundException("User Not Found"));
+                .orElseThrow(()->new ApiException(USER_NOT_FOUND));
         if(!passwordEncoder.matches(dto.getCurrentPassword(),user.getPassword())){
-            throw new IllegalArgumentException("Current Password does not match");
+            throw new ApiException(PASSWORD_MISMATCH);
         }
         if(passwordEncoder.matches(dto.getNewPassword(),user.getPassword())){
-            throw new IllegalArgumentException("New Password is same as the current password!");
+            throw new ApiException(SAME_PASSWORD);
         }
         user.changePassword(passwordEncoder.encode(dto.getNewPassword()));
         userEntityRepository.save(user);
+
+        //비밀번호 변경 시 해당 사용자의 모든 RefreshToken을 revoke
+        Instant now = Instant.now();
+        List<RefreshToken> actives =
+                refreshTokenRepository.findAllByUserEntityAndRevokedAtIsNullAndExpiredAtAfter(user, now);
+        for (RefreshToken rt : actives) {
+            rt.revoke(now);
+        }
     }
 
     //회원 탈퇴 - 회원 정보를 받아, 소셜 로그인 정보, 리프레시 토큰까지 함께 삭제
@@ -112,11 +134,11 @@ public class UserService {
         boolean isAdmin = sessionRole.equals("ROLE_"+Role.ADMIN.name());
 
         if(!isOwner && !isAdmin){
-            throw new AccessDeniedException("You are not authorized to perform this action");
+            throw new AccessDeniedException("회원을 탈퇴할 권한이 없습니다.");
         }
 
         UserEntity user = userEntityRepository.findByUserEmail(dto.getUserEmail())
-                .orElseThrow(()->new UsernameNotFoundException("User Not Found"));
+                .orElseThrow(()->new ApiException(USER_NOT_FOUND));
 
         //1. 리프레시 토큰 제거
         refreshTokenRepository.deleteAllByUserEntity(user);

@@ -3,7 +3,6 @@ package dartoo.accountService.service;
 import dartoo.accountService.domain.UserEntity;
 import dartoo.accountService.repository.UserEntityRepository;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -33,7 +32,7 @@ public class JpaUserDetailsService implements UserDetailsService {
  * 클라이언트 → /login 요청 (username, password)
  * → AuthController.login()
  * → AuthenticationManager.authenticate()
- * → DaoAuthenticationProvider
+ * → DaoAuthenticationProvider (Spring Security에서 기본으로 제공)
  * → UserDetailsService.loadUserByUsername() 호출
  * → DB에서 사용자 조회 + UserDetails 반환 + 비밀번호 검증
  * → 인증 성공 시 Authentication 객체 반환

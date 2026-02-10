@@ -1,0 +1,19 @@
+package dartoo.accountService.dto.account;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+
+@Data
+public class ChangePasswordDto {
+
+    public interface passwordGroup{}
+
+    @NotBlank(groups = {passwordGroup.class})
+    private String currentPassword;
+
+    @NotBlank(groups = {passwordGroup.class})
+    @Size(min = 8, groups = {passwordGroup.class})
+    private String newPassword;
+}
+

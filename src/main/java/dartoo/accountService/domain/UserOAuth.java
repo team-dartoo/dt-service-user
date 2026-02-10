@@ -1,5 +1,6 @@
 package dartoo.accountService.domain;
 
+import dartoo.accountService.domain.enums.SocialProvider;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,4 +36,8 @@ public class UserOAuth {
 
     @CreatedDate
     private Instant linkedAt;
+
+    public void updateProviderEmail(String email) {
+        this.providerEmail = email;
+    }
 }
