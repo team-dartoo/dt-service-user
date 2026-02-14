@@ -12,4 +12,6 @@ public interface UserCorpBookmarkRepository extends JpaRepository<UserCorpBookma
     boolean existsByUser_IdAndCorpId(Long id, String corpId);
 
     long deleteByUser_IdAndCorpId(Long id, String corpId);
+
+    void deleteAllByUser_Id(Long id);
 }

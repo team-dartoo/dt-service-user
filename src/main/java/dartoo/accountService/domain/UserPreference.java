@@ -12,7 +12,6 @@ import java.time.Instant;
 @AllArgsConstructor
 @Getter
 @Builder
-@Setter
 @EntityListeners(AuditingEntityListener.class)
 public class UserPreference {
     @Id
@@ -29,4 +28,8 @@ public class UserPreference {
 
     @LastModifiedDate
     private Instant updatedAt;
+
+    void changeUser(UserEntity userEntity) {
+        this.user = userEntity;
+    }
 }
