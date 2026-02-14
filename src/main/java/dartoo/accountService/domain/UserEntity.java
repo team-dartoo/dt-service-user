@@ -16,6 +16,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 import static dartoo.accountService.error.ErrorCode.USER_BIRTHDAY_CANNOT_BE_FUTURE;
 
@@ -62,11 +64,19 @@ public class UserEntity {
     private Instant updatedAt;
 
     //두 테이블 모두 UserEntity 테이블과 생명주기가 동일하기 때문에 CascadeType.ALL 사용
+    /*
+    CascadeType의 역할 - JPA 수준에서 부모의 영속성 동작을 자식에게 전파
+    orphanRemoval - 부모와의 연결이 끊긴 고아 객체에 대한 처리 방법 설정
+     */
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private UserPreference preference;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private UserAgreed agreed;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<UserOAuth> oAuths = new ArrayList<>();
 
     //CoreService 구현하기 위해 추가된 속성 - 가장 최신 구독 정보를 User에 저장
     @Enumerated(EnumType.STRING)
@@ -98,11 +108,11 @@ public class UserEntity {
 
     public void attachPreference(UserPreference pref) {
         this.preference = pref;
-        pref.setUser(this);
+        pref.changeUser(this);
     }
     public void attachAgreed(UserAgreed agr) {
         this.agreed = agr;
-        agr.setUser(this);
+        agr.changeUser(this);
     }
 
     //CoreService 구현 위해 추가된 메서드
