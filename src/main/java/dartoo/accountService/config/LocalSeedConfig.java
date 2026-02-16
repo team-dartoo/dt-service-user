@@ -1,12 +1,7 @@
 package dartoo.accountService.config;
 
-import dartoo.accountService.domain.UserAgreed;
-import dartoo.accountService.domain.UserEntity;
-import dartoo.accountService.domain.UserPreference;
-import dartoo.accountService.domain.enums.Gender;
-import dartoo.accountService.domain.enums.PlanStatus;
-import dartoo.accountService.domain.enums.PlanType;
-import dartoo.accountService.domain.enums.Role;
+import dartoo.accountService.domain.*;
+import dartoo.accountService.domain.enums.*;
 import dartoo.accountService.repository.UserAgreedRepository;
 import dartoo.accountService.repository.UserEntityRepository;
 import dartoo.accountService.repository.UserPreferenceRepository;
@@ -16,6 +11,8 @@ import dartoo.accountService.repository.core.UserPlanRepository;
 import dartoo.accountService.repository.core.UserSearchHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -40,9 +37,15 @@ public class LocalSeedConfig {
     private final UserNotificationRepository userNotificationRepository;
     private final UserSearchHistoryRepository userSearchHistoryRepository;
 
+    @Bean
+    ApplicationRunner localSeeder(){
+        return args -> seed();
+    }
+
+    //사용자 더미 데이터와 설정 추가
     @Transactional
     public void seed(){
-        log.info("seeding local data.");
+        log.info("더미 데이터 생성 중...");
         //1) 사용자 계정 프로필
         var freeUser = createUser(
                 "freeuser@gmail.com",
@@ -68,6 +71,79 @@ public class LocalSeedConfig {
         );
         setPreference(freeUser); setPreference(premiumUser);
         setAgreed(freeUser); setAgreed(premiumUser);
+
+        setPlanHistory(freeUser); setPlanHistory(premiumUser);
+        setBookmark(freeUser); setBookmark(premiumUser);
+        setNotification(freeUser); setNotification(premiumUser);
+        setSearchHistory(freeUser); setSearchHistory(premiumUser);
+        log.info("더미데이터 생성 완료.\n무료 사용자 id = {}\n무료 사용자 비밀번호 = {}\n프리미엄 사용자 id = {}\n프리미엄 사용자 비밀번호 = {}\n"
+        ,freeUser.getId(),freeUser.getPassword(),premiumUser.getId(),premiumUser.getPassword());
+    }
+
+    private void setSearchHistory(UserEntity user) {
+        UserSearchHistory searchHistory = UserSearchHistory.builder()
+                .user(user)
+                .searchedAt(Instant.now().minusSeconds(3600*3))
+                .query("삼성전자")
+                .build();
+
+        UserSearchHistory searchHistory2 = UserSearchHistory.builder()
+                .user(user)
+                .searchedAt(Instant.now().minusSeconds(3600*2))
+                .query("SK하이닉스")
+                .build();
+        userSearchHistoryRepository.save(searchHistory);
+        userSearchHistoryRepository.save(searchHistory2);
+    }
+
+    private void setNotification(UserEntity user) {
+        UserNotification notification = UserNotification.builder()
+                .user(user)
+                .title("멤버십 결제 만료")
+                .content("35일 전에 결제한 멤버십 결제가 만료되었습니다.")
+                .createdAt(Instant.now().minusSeconds(3600*5))
+                .status(NotificationStatus.UNREAD)
+                .readAt(null)
+                .build();
+        userNotificationRepository.save(notification);
+    }
+
+    private void setBookmark(UserEntity user) {
+        UserCorpBookmark bookmark = UserCorpBookmark.builder()
+                .user(user)
+                .corpId("35161115")
+                .corpName("삼성전자")
+                .createdAt(Instant.now().minusSeconds(3600*3))
+                .build();
+        UserCorpBookmark bookmark2 = UserCorpBookmark.builder()
+                .user(user)
+                .corpId("64889445")
+                .corpName("SK하이닉스")
+                .createdAt(Instant.now().minusSeconds(3600*2))
+                .build();
+        userCorpBookmarkRepository.save(bookmark);
+        userCorpBookmarkRepository.save(bookmark2);
+    }
+
+    private void setPlanHistory(UserEntity user) {
+        UserPlan plan;
+        if(user.getPlan()==PlanType.FREE){
+            plan = UserPlan.builder()
+                    .plan(PlanType.PREMIUM)
+                    .status(PlanStatus.EXPIRED)
+                    .startAt(Instant.now().minusSeconds(3600*35))
+                    .expireAt(Instant.now().minusSeconds(3600*5))
+                    .build();
+        }
+        else{
+            plan = UserPlan.builder()
+                    .plan(PlanType.PREMIUM)
+                    .status(PlanStatus.ACTIVE)
+                    .startAt(Instant.now().minusSeconds(3600*5))
+                    .expireAt(Instant.now().plusSeconds(3600*25))
+                    .build();
+        }
+        userPlanRepository.save(plan);
     }
 
     //사용자 더미데이터 생성
