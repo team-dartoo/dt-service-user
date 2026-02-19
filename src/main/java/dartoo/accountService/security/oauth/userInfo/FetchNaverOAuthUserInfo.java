@@ -74,6 +74,8 @@ public class FetchNaverOAuthUserInfo implements FetchOAuthUserInfo{
                 .gender(getGender())
                 .providerId(getProviderId())
                 .provider(getProvider())
+                .birthday(null)
+                .gender(Gender.UNKNOWN)
                 .build();
     }
 }
