@@ -16,7 +16,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -28,6 +30,9 @@ import java.time.LocalDate;
 public class LocalSeedConfig {
     private final PasswordEncoder passwordEncoder;
 
+    //확실히 트랜잭션을 걸기 위해
+    private final PlatformTransactionManager txManager;
+
     //repository 목록
     private final UserEntityRepository userEntityRepository;
     private final UserPreferenceRepository userPreferenceRepository;
@@ -38,8 +43,12 @@ public class LocalSeedConfig {
     private final UserSearchHistoryRepository userSearchHistoryRepository;
 
     @Bean
+    @Transactional
     ApplicationRunner localSeeder(){
-        return args -> seed();
+        return args -> new TransactionTemplate(txManager).execute(status -> {
+            seed(); // seed 전체가 하나의 트랜잭션 안에서 실행되도록 하기 위함
+            return null;
+        });
     }
 
     //사용자 더미 데이터와 설정 추가
@@ -65,7 +74,7 @@ public class LocalSeedConfig {
                 Role.USER,
                 PlanType.PREMIUM,
                 PlanStatus.ACTIVE,
-                Instant.now().plusSeconds(3600*30),
+                Instant.now().plusSeconds(3600*24*30),
                 Gender.FEMALE,
                 LocalDate.of(2000,11,16)
         );
@@ -77,19 +86,19 @@ public class LocalSeedConfig {
         setNotification(freeUser); setNotification(premiumUser);
         setSearchHistory(freeUser); setSearchHistory(premiumUser);
         log.info("더미데이터 생성 완료.\n무료 사용자 id = {}\n무료 사용자 비밀번호 = {}\n프리미엄 사용자 id = {}\n프리미엄 사용자 비밀번호 = {}\n"
-        ,freeUser.getId(),freeUser.getPassword(),premiumUser.getId(),premiumUser.getPassword());
+        ,freeUser.getId(),"test1",premiumUser.getId(),"test2");
     }
 
     private void setSearchHistory(UserEntity user) {
         UserSearchHistory searchHistory = UserSearchHistory.builder()
                 .user(user)
-                .searchedAt(Instant.now().minusSeconds(3600*3))
+                .searchedAt(Instant.now().minusSeconds(3600*24*3))
                 .query("삼성전자")
                 .build();
 
         UserSearchHistory searchHistory2 = UserSearchHistory.builder()
                 .user(user)
-                .searchedAt(Instant.now().minusSeconds(3600*2))
+                .searchedAt(Instant.now().minusSeconds(3600*24*2))
                 .query("SK하이닉스")
                 .build();
         userSearchHistoryRepository.save(searchHistory);
@@ -101,7 +110,7 @@ public class LocalSeedConfig {
                 .user(user)
                 .title("멤버십 결제 만료")
                 .content("35일 전에 결제한 멤버십 결제가 만료되었습니다.")
-                .createdAt(Instant.now().minusSeconds(3600*5))
+                .createdAt(Instant.now().minusSeconds(3600*24*5))
                 .status(NotificationStatus.UNREAD)
                 .readAt(null)
                 .build();
@@ -113,13 +122,13 @@ public class LocalSeedConfig {
                 .user(user)
                 .corpId("35161115")
                 .corpName("삼성전자")
-                .createdAt(Instant.now().minusSeconds(3600*3))
+                .createdAt(Instant.now().minusSeconds(3600*24*3))
                 .build();
         UserCorpBookmark bookmark2 = UserCorpBookmark.builder()
                 .user(user)
                 .corpId("64889445")
                 .corpName("SK하이닉스")
-                .createdAt(Instant.now().minusSeconds(3600*2))
+                .createdAt(Instant.now().minusSeconds(3600*24*2))
                 .build();
         userCorpBookmarkRepository.save(bookmark);
         userCorpBookmarkRepository.save(bookmark2);
@@ -129,18 +138,20 @@ public class LocalSeedConfig {
         UserPlan plan;
         if(user.getPlan()==PlanType.FREE){
             plan = UserPlan.builder()
+                    .user(user)
                     .plan(PlanType.PREMIUM)
                     .status(PlanStatus.EXPIRED)
-                    .startAt(Instant.now().minusSeconds(3600*35))
-                    .expireAt(Instant.now().minusSeconds(3600*5))
+                    .startAt(Instant.now().minusSeconds(3600*24*35))
+                    .expireAt(Instant.now().minusSeconds(3600*24*5))
                     .build();
         }
         else{
             plan = UserPlan.builder()
+                    .user(user)
                     .plan(PlanType.PREMIUM)
                     .status(PlanStatus.ACTIVE)
-                    .startAt(Instant.now().minusSeconds(3600*5))
-                    .expireAt(Instant.now().plusSeconds(3600*25))
+                    .startAt(Instant.now().minusSeconds(3600*24*5))
+                    .expireAt(Instant.now().plusSeconds(3600*24*25))
                     .build();
         }
         userPlanRepository.save(plan);

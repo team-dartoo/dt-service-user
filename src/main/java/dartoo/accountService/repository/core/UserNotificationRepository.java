@@ -16,7 +16,7 @@ public interface UserNotificationRepository extends JpaRepository<UserNotificati
 
     List<UserNotification> findAllByUser_IdAndCreatedAtAfterAndStatusNotOrderByCreatedAtDesc(Long userId, Instant createdAtAfter, NotificationStatus status);
 
-    long deleteCreatedAtBefore(Instant deadline);
+    long deleteByCreatedAtBefore(Instant deadline);
 
     //@Modifying -> 조회 허용
     //DB에 변경사항 전부 flush 후 캐시 비움
