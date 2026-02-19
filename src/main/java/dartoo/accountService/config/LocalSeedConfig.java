@@ -28,6 +28,11 @@ import java.time.LocalDate;
 @Profile("local")
 @RequiredArgsConstructor
 public class LocalSeedConfig {
+    private static final String FREE_USER_EMAIL = "freeuser@gmail.com";
+    private static final String FREE_USER_PASSWORD = "testuser1";
+    private static final String PREMIUM_USER_EMAIL = "premiumUser@gmail.com";
+    private static final String PREMIUM_USER_PASSWORD = "testuser2";
+
     private final PasswordEncoder passwordEncoder;
 
     //확실히 트랜잭션을 걸기 위해
@@ -57,8 +62,8 @@ public class LocalSeedConfig {
         log.info("더미 데이터 생성 중...");
         //1) 사용자 계정 프로필
         var freeUser = createUser(
-                "freeuser@gmail.com",
-                "test1",
+                FREE_USER_EMAIL,
+                FREE_USER_PASSWORD,
                 "I'mFree",
                 Role.USER,
                 PlanType.FREE,
@@ -68,8 +73,8 @@ public class LocalSeedConfig {
                 LocalDate.of(2000,11,16)
         );
         var premiumUser = createUser(
-                "premiumUser@gmail.com",
-                "test2",
+                PREMIUM_USER_EMAIL,
+                PREMIUM_USER_PASSWORD,
                 "I'mPremium",
                 Role.USER,
                 PlanType.PREMIUM,
@@ -86,7 +91,7 @@ public class LocalSeedConfig {
         setNotification(freeUser); setNotification(premiumUser);
         setSearchHistory(freeUser); setSearchHistory(premiumUser);
         log.info("더미데이터 생성 완료.\n무료 사용자 id = {}\n무료 사용자 비밀번호 = {}\n프리미엄 사용자 id = {}\n프리미엄 사용자 비밀번호 = {}\n"
-        ,freeUser.getId(),"test1",premiumUser.getId(),"test2");
+        ,FREE_USER_EMAIL,FREE_USER_PASSWORD,PREMIUM_USER_EMAIL,PREMIUM_USER_PASSWORD);
     }
 
     private void setSearchHistory(UserEntity user) {
