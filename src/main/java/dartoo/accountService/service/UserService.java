@@ -69,8 +69,15 @@ public class UserService {
                 .birthday(dto.getBirthday())
                 .build();
 
+        return saveUserWithDefaultSettings(newUser).getId();
+    }
+
+    @Transactional
+    public UserEntity saveUserWithDefaultSettings(UserEntity newUser){
+        UserEntity saved = userEntityRepository.save(newUser);
         //기본 설정 자동 저장
         UserAgreed defaultAgreed = UserAgreed.builder()
+                .user(saved)
                 .marketingAgreed(true)
                 .tosAgreed(false)
                 .tosVersion("0.0.0")
@@ -80,13 +87,13 @@ public class UserService {
         userAgreedRepository.save(defaultAgreed);
 
         UserPreference defaultpref = UserPreference.builder()
+                .user(saved)
                 .emailEnabled(false)
                 .pushEnabled(true)
                 .alertDelay(15)
                 .build();
         userPreferenceRepository.save(defaultpref);
-
-        return userEntityRepository.save(newUser).getId();
+        return saved;
     }
 
     public UserEntity getUserById(Long id) {
