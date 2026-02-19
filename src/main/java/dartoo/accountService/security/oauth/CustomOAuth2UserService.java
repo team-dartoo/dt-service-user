@@ -2,6 +2,7 @@ package dartoo.accountService.security.oauth;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.client.userinfo.*;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
@@ -43,6 +44,7 @@ import java.util.Map;
  */
 @RequiredArgsConstructor
 @Service
+@Slf4j
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private final RestClient restClient = RestClient.create();
@@ -113,7 +115,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             int year = date.path("year").asInt(0);
             int month = date.path("month").asInt(0);
             int day = date.path("day").asInt(0);
-
+            log.debug("year: {}, month: {}, day: {}", year, month, day);
             if (year > 0 && month > 0 && day > 0) {
                 birthday = LocalDate.of(year, month, day);
                 if (primary) break; // primary 있으면 바로 사용

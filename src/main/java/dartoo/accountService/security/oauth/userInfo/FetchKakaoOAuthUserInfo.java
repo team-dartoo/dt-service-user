@@ -2,6 +2,7 @@ package dartoo.accountService.security.oauth.userInfo;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dartoo.accountService.domain.enums.Gender;
 import dartoo.accountService.domain.enums.SocialProvider;
 import dartoo.accountService.dto.oauth.FetchProfileDto;
 
@@ -57,6 +58,8 @@ public class FetchKakaoOAuthUserInfo implements FetchOAuthUserInfo{
                 .nickname(getNickname())
                 .providerId(getProviderId())
                 .provider(getProvider())
+                .birthday(null)
+                .gender(Gender.UNKNOWN)
                 .build();
     }
 }

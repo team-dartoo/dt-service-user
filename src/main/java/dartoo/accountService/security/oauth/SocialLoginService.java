@@ -3,6 +3,7 @@ package dartoo.accountService.security.oauth;
 import dartoo.accountService.domain.enums.Role;
 import dartoo.accountService.domain.UserEntity;
 import dartoo.accountService.domain.UserOAuth;
+import dartoo.accountService.dto.oauth.FetchProfileDto;
 import dartoo.accountService.dto.oauth.SocialLoginResultDto;
 import dartoo.accountService.error.ApiException;
 import dartoo.accountService.repository.UserEntityRepository;
@@ -89,12 +90,16 @@ public class SocialLoginService {
         }
         String nickname = (userInfo.getNickname()!=null&&!userInfo.getNickname().isBlank()) ?
                 userInfo.getNickname():userInfo.getProvider()+"_user_"+userInfo.getProviderId().substring(0,8);
+
+        FetchProfileDto profile = userInfo.getProfile();
         UserEntity newUser =  UserEntity.builder()
                 .userEmail(newEmail)
                 .password(passwordEncoder.encode("SOCIAL"+ UUID.randomUUID()))
                 .passwordSet(false)
                 .nickname(nickname)
                 .role(Role.USER)
+                .gender(profile.getGender())
+                .birthday(profile.getBirthday())
                 .build();
         return userEntityRepository.save(newUser);
     }
