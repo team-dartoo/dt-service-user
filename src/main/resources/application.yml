@@ -1,6 +1,8 @@
 spring:
   application:
     name: accountService
+  profiles:
+    active: local
   datasource:
     url: ${DB_URL}
     driver-class-name: com.mysql.cj.jdbc.Driver
