@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -185,10 +186,10 @@ public class UserPlanService {
     }
 
     private Instant calculateNewExpireAt(Instant currentExpireAt, PlanDuration duration) {
-        return switch (duration){
-            case MONTHLY -> currentExpireAt.plus(1, ChronoUnit.MONTHS);
-            case YEARLY -> currentExpireAt.plus(1, ChronoUnit.YEARS);
-            case TRIAL -> currentExpireAt.plus(TRIAL_PERIOD_DAYS,ChronoUnit.DAYS);
+        return switch (duration) {
+            case MONTHLY -> currentExpireAt.atZone(ZoneOffset.UTC).plusMonths(1).toInstant();
+            case YEARLY  -> currentExpireAt.atZone(ZoneOffset.UTC).plusYears(1).toInstant();
+            case TRIAL   -> currentExpireAt.plus(TRIAL_PERIOD_DAYS, ChronoUnit.DAYS);
         };
     }
 
