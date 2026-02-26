@@ -1,22 +1,24 @@
 spring:
   application:
-    name: accountService
+    name: ${SPRING_APPLICATION_NAME:dt-service-user}
+  lifecycle:
+    timeout-per-shutdown-phase: ${SPRING_SHUTDOWN_TIMEOUT:30s}
   profiles:
-    active: local
+    active: ${SPRING_PROFILES_ACTIVE:local}
   datasource:
     url: ${DB_URL}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:mysql.cj.jdbc.Driver}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
     properties:
-      dialect: org.hibernate.dialect.MySQL8Dialect
+      dialect: ${HIBERNATE_DIALECT:org.hibernate.dialect.MySQL8Dialect}
       format_sql: true
-      hibernate.jdbc.time_zone: UTC
+      hibernate.jdbc.time_zone: ${SPRING_JPA_HIBERNATE_TIME_ZONE:UTC}
   jackson:
-    time-zone: UTC
+    time-zone: ${SPRING_JACKSON_TIME_ZONE:UTC}
   security:
     oauth2:
       client:
@@ -67,13 +69,13 @@ app:
     access-secret: ${JWT_ACCESS_SECRET}
     refresh-secret: ${JWT_REFRESH_SECRET}
     refresh-pepper: ${JWT_REFRESH_PEPPER}
-    access-ttl-seconds: 900 # 15분
-    refresh-ttl-seconds: 1209600 # 14일
+    access-ttl-seconds: ${JWT_ACCESS_TTL_SECONDS:900} # 15분
+    refresh-ttl-seconds: ${JWT_REFRESH_TTL_SECONDS:1209600} # 14일
   oauth:
     # 이 소셜 계정을 기존 DB의 어떤 이메일 계정에 붙여야 하는지
     # 결정할 때만 쓰는 짧은 수명의 링크 토큰용 키
     link-secret: ${OAUTH_LINK_SECRET}
-    link-ttl-seconds: 900
+    link-ttl-seconds: ${OAUTH_LINK_TTL_SECONDS:900} # 5분
     link-cookie-name: "oauth-link-token-dartoo"
     issuer: "Dartoo"
 
