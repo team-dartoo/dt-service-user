@@ -2,6 +2,7 @@ package dartoo.accountService.domain;
 
 import dartoo.accountService.domain.enums.PlanStatus;
 import dartoo.accountService.domain.enums.PlanType;
+import dartoo.accountService.dto.core.enums.PlanDuration;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -38,6 +39,10 @@ public class UserPlan {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PlanType plan;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PlanDuration duration;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
