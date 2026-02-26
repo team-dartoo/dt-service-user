@@ -1,20 +1,22 @@
 FROM bellsoft/liberica-openjdk-alpine-musl:21 AS builder
-COPY gradlew .
-COPY gradle gradle
-COPY build.gradle .
-COPY settings.gradle .
-COPY src src
-RUN chmod +x ./gradlew
-RUN ./gradlew bootJar
-
-FROM bellsoft/liberica-openjdk-alpine-musl:21
 
 WORKDIR /app
 
-COPY --from=builder build/libs/*.jar app.jar
+RUN addgroup -S spring && adduser -S spring -G spring
 
-EXPOSE 8081
+# JAR 파일을 컨테이너로 복사
+COPY build/libs/*.jar app.jar
 
+# 소유권 변경
+RUN chown -R spring:spring /app
+
+# Non-root 사용자로 전환
+USER spring
+
+# 포트 노출
+EXPOSE 8080
+
+# 애플리케이션 실행 (JVM 최적화 옵션 포함)
 ENTRYPOINT ["java", \
     "-XX:MaxRAMPercentage=75.0", \
     "-XX:+UseContainerSupport", \
