@@ -2,6 +2,7 @@ package dartoo.accountService.config;
 
 import dartoo.accountService.domain.*;
 import dartoo.accountService.domain.enums.*;
+import dartoo.accountService.dto.core.enums.PlanDuration;
 import dartoo.accountService.repository.UserAgreedRepository;
 import dartoo.accountService.repository.UserEntityRepository;
 import dartoo.accountService.repository.UserPreferenceRepository;
@@ -146,6 +147,7 @@ public class LocalSeedConfig {
                     .user(user)
                     .plan(PlanType.PREMIUM)
                     .status(PlanStatus.EXPIRED)
+                    .duration(PlanDuration.MONTHLY)
                     .startAt(Instant.now().minusSeconds(3600*24*35))
                     .expireAt(Instant.now().minusSeconds(3600*24*5))
                     .build();
@@ -155,6 +157,7 @@ public class LocalSeedConfig {
                     .user(user)
                     .plan(PlanType.PREMIUM)
                     .status(PlanStatus.ACTIVE)
+                    .duration(PlanDuration.MONTHLY)
                     .startAt(Instant.now().minusSeconds(3600*24*5))
                     .expireAt(Instant.now().plusSeconds(3600*24*25))
                     .build();

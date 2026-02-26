@@ -2,6 +2,7 @@ package dartoo.accountService.repository.core;
 
 import dartoo.accountService.domain.UserPlan;
 import dartoo.accountService.domain.enums.PlanStatus;
+import dartoo.accountService.dto.core.enums.PlanDuration;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -47,4 +48,8 @@ public interface UserPlanRepository extends JpaRepository<UserPlan,Long> {
     List<UserPlan> findAllActivePlansForUsers(@Param("userIds") List<Long> userIds,
                                               @Param("now") Instant now,
                                               @Param("status") PlanStatus status);
+
+    boolean existsByUser_IdAndDuration(Long id, PlanDuration duration);
+
+    boolean existsByUser_IdAndDurationIn(Long id, List<PlanDuration> monthly);
 }

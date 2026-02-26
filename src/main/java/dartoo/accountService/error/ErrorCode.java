@@ -65,7 +65,9 @@ public enum ErrorCode {
     ALREADY_RENEWED(HttpStatus.BAD_REQUEST, "이미 갱신된 플랜입니다"),
     RENEW_NOT_ALLOWED_YET(HttpStatus.BAD_REQUEST, "아직 연장 가능한 기간이 아닙니다."),
     INVALID_RENEW_DURATION(HttpStatus.BAD_REQUEST, "잘못된 연장 기간입니다"),
-    ALREADY_SUBSCRIBED(HttpStatus.BAD_REQUEST,"이미 구독한 사용자는 구독을 갱신해야 합니다.");
+    ALREADY_SUBSCRIBED(HttpStatus.BAD_REQUEST,"이미 구독한 사용자는 구독을 갱신해야 합니다."),
+    TRIAL_ALREADY_USED(HttpStatus.CONFLICT,"이미 TRIAL을 사용한 사용자입니다."),
+    TRIAL_NOT_ALLOWED_FOR_EXISTING_CUSTOMER(HttpStatus.CONFLICT,"이미 유료 요금제 사용 경력이 있는 사용자입니다.");
     private final HttpStatus status;
     private final String message;
 }
