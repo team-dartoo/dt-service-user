@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  namespace: dartoo
+  labels:
+    app: mysql
+    app.kubernetes.io/part-of: dartoo
+    app.kubernetes.io/component: database
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/instance: mysql-dartoo
+    app.kubernetes.io/managed-by: kubectl
+spec:
+  serviceName: mysql-svc
+  selector:
+    matchLabels:
+      app: mysql
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mysql
+        app.kubernetes.io/part-of: dartoo
+        app.kubernetes.io/component: database
+        app.kubernetes.io/name: mysql
+        app.kubernetes.io/instance: mysql-dartoo
+        app.kubernetes.io/managed-by: kubectl
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:8.0.36
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+        livenessProbe:
+          exec:
+            command:
+              - mysqladmin
+              - ping
+              - -h
+              - localhost
+          initialDelaySeconds: 90
+          timeoutSeconds: 5
+          periodSeconds: 3
+        env:
+        - name: TZ
+          value: Asia/Seoul
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_ROOT_PASSWORD
+        - name: MYSQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_DATABASE
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_USER
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_PASSWORD
+        ports:
+        - containerPort: 3306
+          name: mysql
+        volumeMounts:
+        - name: mysql-storage
+          mountPath: /var/lib/mysql
+        - name: mysql-initdb
+          mountPath: /docker-entrypoint-initdb.d
+      volumes:
+      - name: mysql-initdb
+        configMap:
+          name: mysql-config
+  volumeClaimTemplates:
+  - metadata:
+      name: mysql-storage
+      labels:
+        app: mysql
+        app.kubernetes.io/part-of: dartoo
+        app.kubernetes.io/component: database
+        app.kubernetes.io/name: mysql
+        app.kubernetes.io/instance: mysql-dartoo
+    spec:
+      storageClassName: local-path
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 2Gi

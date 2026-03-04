@@ -43,6 +43,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/users/**").authenticated() //회원 정보 관련이니까
                 .requestMatchers("/api/auth/**").permitAll() //로그인 관련이니까.
                 .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll() //oauth2 로그인 관련
+                .requestMatchers("/actuator/health/**").permitAll() //헬스체크 관련
                 .anyRequest().authenticated());
         http.sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.csrf(AbstractHttpConfigurer::disable);

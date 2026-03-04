@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dt-user
+  namespace: dartoo
+  labels:
+    app: dt-user
+    app.kubernetes.io/managed-by: kubectl
+    app.kubernetes.io/part-of: dartoo
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/name: dt-user
+    app.kubernetes.io/instance: dt-user-dartoo
+spec:
+  selector:
+    matchLabels:
+      app: dt-user
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: dt-user
+    spec:
+      # initContainers:
+        # Init containers are exactly like regular containers, except:
+          # - Init containers always run to completion.
+          # - Each init container must complete successfully before the next one starts.
+      containers:
+      - name: dt-user
+        image:  ghcr.io/team-dartoo/dt-service-user:latest
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          initialDelaySeconds: 180
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 5
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
+          initialDelaySeconds: 60
+          timeoutSeconds: 2
+          successThreshold: 1
+          failureThreshold: 3
+          periodSeconds: 10
+        envFrom:
+        - configMapRef:
+            name: dt-user-config
+        - secretRef:
+            name: dt-user-secret
+        env:
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_PASSWORD
+        ports:
+        - containerPort: 8080
+          name: http
+      imagePullSecrets:
+      - name: ghcr-secret
+      restartPolicy: Always

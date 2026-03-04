@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dt-user-svc
+  namespace: dartoo
+  labels:
+    app: dt-user
+    app.kubernetes.io/managed-by: kubectl
+    app.kubernetes.io/part-of: dartoo
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/name: dt-user
+    app.kubernetes.io/instance: dt-user-dartoo
+spec:
+  selector:
+    app: dt-user
+  type: ClusterIP
+  ports:
+  - name: http
+    protocol: TCP
+    port: 8080
+    targetPort: 8080
