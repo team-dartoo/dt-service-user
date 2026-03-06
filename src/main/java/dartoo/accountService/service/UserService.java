@@ -89,7 +89,7 @@ public class UserService {
         UserPreference defaultpref = UserPreference.builder()
                 .user(saved)
                 .emailEnabled(false)
-                .pushEnabled(true)
+                .pushEnabled(false)
                 .alertDelay(15)
                 .build();
         userPreferenceRepository.save(defaultpref);
