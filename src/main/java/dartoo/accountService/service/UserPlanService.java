@@ -8,6 +8,7 @@ import dartoo.accountService.dto.core.*;
 import dartoo.accountService.dto.core.enums.PlanAction;
 import dartoo.accountService.dto.core.enums.PlanDuration;
 import dartoo.accountService.error.ApiException;
+import dartoo.accountService.error.ErrorCode;
 import dartoo.accountService.repository.UserEntityRepository;
 import dartoo.accountService.repository.core.UserPlanRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,10 +18,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static dartoo.accountService.dto.core.enums.PlanDuration.*;
 import static dartoo.accountService.error.ErrorCode.*;
 
 @Service
@@ -71,6 +74,18 @@ public class UserPlanService {
         Instant now = Instant.now();
         log.info("플랜 업데이트 요청: userId={}, action={}, plan={}, duration={}",
                 user.getId(), request.getAction(), request.getPlan(), request.getDuration());
+
+        if(request.getDuration()==TRIAL) {
+            //무료 체험 검증 로직 추가 1 - 이미 무료 체험을 사용한 경우
+            boolean usedTrial = userPlanRepository.existsByUser_IdAndDuration(user.getId(), PlanDuration.TRIAL);
+            if (usedTrial) throw new ApiException(TRIAL_ALREADY_USED);
+            //무료 체험 검증 로직 추가 2 - 이미 유료 결제를 한 경우
+            boolean hasPaidHistory = userPlanRepository.existsByUser_IdAndDurationIn(
+                    user.getId(), List.of(PlanDuration.MONTHLY, PlanDuration.YEARLY)
+            );
+            if (hasPaidHistory) throw new ApiException(TRIAL_NOT_ALLOWED_FOR_EXISTING_CUSTOMER);
+        }
+
         switch (request.getAction()){
             case SUBSCRIBE, RENEW -> {
                 //requestDto 검증 로직
@@ -90,9 +105,14 @@ public class UserPlanService {
                 }
 
                 //기존의 구독이 존재한다면 그 구독이 언제 끝나는지를 파악
-                Instant currentExpireAt = now;
+                Instant currentExpireAt = now; //현재 사이클 만료일
                 if(user.getPlan()==PlanType.PREMIUM && user.getPlanExpireAt()!=null && user.getPlanExpireAt().isAfter(now)){
-                    currentExpireAt = user.getPlanExpireAt();
+                    UserPlan currentPlan = userPlanRepository
+                            .findTopByUser_IdAndStartAtLessThanEqualAndExpireAtAfterAndStatusInOrderByExpireAtDesc(
+                                    user.getId(), now, now, List.of(PlanStatus.ACTIVE, PlanStatus.CANCELLED)
+                            )
+                            .orElseThrow(() -> new ApiException(INVALID_RENEW_REQUEST));
+                    currentExpireAt = currentPlan.getExpireAt();
                 }
 
                 //구독 갱신(RENEW) 시의 검증 로직
@@ -106,6 +126,7 @@ public class UserPlanService {
                 userPlanRepository.save(UserPlan.builder()
                                 .user(user)
                                 .plan(request.getPlan())
+                                .duration(request.getDuration())
                                 .status(PlanStatus.ACTIVE)
                                 .startAt(currentExpireAt) //만료되는 시점부터 다시 시작
                                 .expireAt(newExpireAt)
@@ -185,10 +206,10 @@ public class UserPlanService {
     }
 
     private Instant calculateNewExpireAt(Instant currentExpireAt, PlanDuration duration) {
-        return switch (duration){
-            case MONTHLY -> currentExpireAt.plus(1, ChronoUnit.MONTHS);
-            case YEARLY -> currentExpireAt.plus(1, ChronoUnit.YEARS);
-            case TRIAL -> currentExpireAt.plus(TRIAL_PERIOD_DAYS,ChronoUnit.DAYS);
+        return switch (duration) {
+            case MONTHLY -> currentExpireAt.atZone(ZoneOffset.UTC).plusMonths(1).toInstant();
+            case YEARLY  -> currentExpireAt.atZone(ZoneOffset.UTC).plusYears(1).toInstant();
+            case TRIAL   -> currentExpireAt.plus(TRIAL_PERIOD_DAYS, ChronoUnit.DAYS);
         };
     }
 
@@ -213,8 +234,22 @@ public class UserPlanService {
             throw new ApiException(INVALID_RENEW_REQUEST);
         }
 
+        //연장 중복 금지: currentExpireAt 이후 시작하는 ACTIVE row가 이미 있으면 거절
+        boolean hasFutureActivePlan = userPlanRepository
+                .existsByUser_IdAndStartAtGreaterThanEqualAndStatus(
+                        user.getId(), currentExpireAt, PlanStatus.ACTIVE
+                );
+
+        if (hasFutureActivePlan) {
+            throw new ApiException(ALREADY_RENEWED);
+        }
+
         //duration별 연장 가능 윈도우 체크
-        long windowDays = switch (duration) {
+        PlanDuration currentDuration = userPlanRepository.findTopByUser_IdAndStartAtLessThanEqualAndExpireAtAfterAndStatusInOrderByExpireAtDesc(
+                user.getId(),now,now,List.of(PlanStatus.ACTIVE,PlanStatus.CANCELLED))
+                .orElseThrow(()-> new ApiException(INVALID_RENEW_REQUEST)).getDuration();
+
+        long windowDays = switch (currentDuration) {
             case MONTHLY -> RENEW_WINDOW_DAYS_MONTHLY;
             case YEARLY -> RENEW_WINDOW_DAYS_YEARLY;
             case TRIAL -> -1; // 정책: 일단 TRIAL은 연장 불가로 처리 (무료 체험 다 끝나고 결제하는게 자연스러우니까)
@@ -228,16 +263,6 @@ public class UserPlanService {
         if (now.isBefore(renewAllowedFrom)) {
             // 너무 이르게 연장하려는 경우
             throw new ApiException(RENEW_NOT_ALLOWED_YET);
-        }
-
-        //연장 중복 금지: currentExpireAt 이후 시작하는 ACTIVE row가 이미 있으면 거절
-        boolean hasFutureActivePlan = userPlanRepository
-                .existsByUser_IdAndStartAtGreaterThanEqualAndStatus(
-                        user.getId(), currentExpireAt, PlanStatus.ACTIVE
-                );
-
-        if (hasFutureActivePlan) {
-            throw new ApiException(ALREADY_RENEWED);
         }
 
     }

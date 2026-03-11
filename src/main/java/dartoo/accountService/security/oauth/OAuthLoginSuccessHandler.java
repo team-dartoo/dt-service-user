@@ -19,6 +19,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
@@ -47,6 +48,7 @@ import static dartoo.accountService.error.ErrorCode.USER_NOT_FOUND;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
 
     private final SocialLoginService socialLoginService;
@@ -71,7 +73,7 @@ public class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
             //raw형태의 JSON형태
             @SuppressWarnings("unchecked")
             Map<String, Object> attributes = (Map<String, Object>) token.getPrincipal().getAttributes();
-
+            log.debug("birthDate={},gender={}",attributes.get("birthDate"),attributes.get("gender"));
             FetchOAuthUserInfo userInfo = switch (regId) {
                 case "naver" -> new FetchNaverOAuthUserInfo(attributes);
                 case "kakao" -> new FetchKakaoOAuthUserInfo(attributes);

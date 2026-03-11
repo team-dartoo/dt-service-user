@@ -1,15 +1,16 @@
 package dartoo.accountService.service;
 
 import dartoo.accountService.domain.RefreshToken;
+import dartoo.accountService.domain.UserAgreed;
+import dartoo.accountService.domain.UserPreference;
 import dartoo.accountService.domain.enums.Role;
 import dartoo.accountService.domain.UserEntity;
 import dartoo.accountService.dto.account.ChangePasswordDto;
 import dartoo.accountService.dto.account.UserRequestDto;
 import dartoo.accountService.dto.account.UserResponseDto;
 import dartoo.accountService.error.ApiException;
-import dartoo.accountService.repository.RefreshTokenRepository;
-import dartoo.accountService.repository.UserEntityRepository;
-import dartoo.accountService.repository.UserOAuthRepository;
+import dartoo.accountService.repository.*;
+import dartoo.accountService.repository.core.UserCorpBookmarkRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContext;
@@ -31,6 +32,10 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserOAuthRepository userOAuthRepository;
+    private final UserAgreedRepository userAgreedRepository;
+    private final UserPreferenceRepository userPreferenceRepository;
+    private final UserCorpBookmarkRepository userCorpBookmarkRepository;
+
     //자체 회원 가입, 탈퇴, 회원 정보 수정 관련 로직 등 -> 최대한 Long id는 사용하지 않는 방식으로 구현
     //회원 정보 업데이트 시 이메일을 DTO에 담아서 하는 것보다, SecurityContextHolder에
     //담긴 이메일 정보를 기반으로 업데이트하는 것이 보안상으로 좋은 것 같다.
@@ -63,7 +68,32 @@ public class UserService {
                 .nickname(dto.getNickname())
                 .birthday(dto.getBirthday())
                 .build();
-        return userEntityRepository.save(newUser).getId();
+
+        return saveUserWithDefaultSettings(newUser).getId();
+    }
+
+    @Transactional
+    public UserEntity saveUserWithDefaultSettings(UserEntity newUser){
+        UserEntity saved = userEntityRepository.save(newUser);
+        //기본 설정 자동 저장
+        UserAgreed defaultAgreed = UserAgreed.builder()
+                .user(saved)
+                .marketingAgreed(true)
+                .tosAgreed(false)
+                .tosVersion("0.0.0")
+                .privacyAgreed(false)
+                .privacyVersion("0.0.0")
+                .build();
+        userAgreedRepository.save(defaultAgreed);
+
+        UserPreference defaultpref = UserPreference.builder()
+                .user(saved)
+                .emailEnabled(false)
+                .pushEnabled(false)
+                .alertDelay(15)
+                .build();
+        userPreferenceRepository.save(defaultpref);
+        return saved;
     }
 
     public UserEntity getUserById(Long id) {
@@ -140,11 +170,13 @@ public class UserService {
         UserEntity user = userEntityRepository.findByUserEmail(dto.getUserEmail())
                 .orElseThrow(()->new ApiException(USER_NOT_FOUND));
 
-        //1. 리프레시 토큰 제거
+        //1. 사용자 북마크 정보 제거
+        userCorpBookmarkRepository.deleteAllByUser_Id(user.getId());
+        //2. 리프레시 토큰 제거
         refreshTokenRepository.deleteAllByUserEntity(user);
-        //2. 소셜 로그인 정보 제거
+        //3. 소셜 로그인 정보 제거
         userOAuthRepository.deleteAllByUserEntity(user);
-        //3. 회원 정보 완전히 제거
+        //4. 회원 정보 완전히 제거
         userEntityRepository.deleteByUserEmail(dto.getUserEmail());
     }
 }

@@ -29,4 +29,8 @@ public class UserPreference {
 
     @LastModifiedDate
     private Instant updatedAt;
+
+    void changeUser(UserEntity userEntity) {
+        this.user = userEntity;
+    }
 }

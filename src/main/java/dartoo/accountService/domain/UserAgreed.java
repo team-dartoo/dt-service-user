@@ -6,8 +6,8 @@ import lombok.*;
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
-@Getter
 @Builder
+@Getter
 @Setter
 public class UserAgreed {
     @Id
@@ -26,4 +26,8 @@ public class UserAgreed {
     private String  privacyVersion;
     @Column(nullable = false)
     private Boolean marketingAgreed;
+
+    void changeUser(UserEntity userEntity) {
+        this.user = userEntity;
+    }
 }

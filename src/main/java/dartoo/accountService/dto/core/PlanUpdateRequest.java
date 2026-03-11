@@ -14,7 +14,4 @@ public class PlanUpdateRequest {
     // 신규 구독/연장에서만 필수 필드
     private PlanType plan;
     private PlanDuration duration;
-
-    public static class PlanHistoryResponse {
-    }
 }

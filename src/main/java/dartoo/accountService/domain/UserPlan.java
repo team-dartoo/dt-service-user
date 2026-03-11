@@ -2,6 +2,7 @@ package dartoo.accountService.domain;
 
 import dartoo.accountService.domain.enums.PlanStatus;
 import dartoo.accountService.domain.enums.PlanType;
+import dartoo.accountService.dto.core.enums.PlanDuration;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,13 +32,17 @@ public class UserPlan {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "user_id", nullable = true)
     private UserEntity user;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PlanType plan;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PlanDuration duration;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

@@ -2,12 +2,14 @@ version: '3.8'
 
 services:
   user-service:
-    image: dt-service-user:v1
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: user-service
     ports:
-      - "8081:8081"
+      - "8081:8080"
     env_file:
-      - .env
+      - .env-product
     # environment:
     #   DB_URL: jdbc:mysql://mysql-dartoo:3306/Dartoo
     #   DB_USERNAME: manager_dartoo
@@ -21,3 +23,27 @@ services:
     restart: on-failure
     networks:
       - dartoo-network
+  mysql:
+    image: mysql:8.0.23
+    container_name: mysql-dartoo
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: Dartoo
+      MYSQL_USER: manager_dartoo
+      MYSQL_PASSWORD: 7765
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s       # 헬스체크 주기 (5초) [5]
+      timeout: 2s        # 헬스체크 시간 초과 (2초)
+      retries: 5         # 실패 횟수 허용 (5번) [5]
+      start_period: 10s  # 초기 시작 시 대기 시간 (10초)
+    restart: always
+    networks:
+      - dartoo-network
+
+networks:
+  dartoo-network:
+    driver: bridge
+    name: dartoo-network

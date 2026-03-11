@@ -5,8 +5,9 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 .env
-.env2
-application.yml
+.env-legacy
+.env-product
+#application.yml
 
 ### STS ###
 .apt_generated

@@ -3,11 +3,13 @@ package dartoo.accountService.security.oauth;
 import dartoo.accountService.domain.enums.Role;
 import dartoo.accountService.domain.UserEntity;
 import dartoo.accountService.domain.UserOAuth;
+import dartoo.accountService.dto.oauth.FetchProfileDto;
 import dartoo.accountService.dto.oauth.SocialLoginResultDto;
 import dartoo.accountService.error.ApiException;
 import dartoo.accountService.repository.UserEntityRepository;
 import dartoo.accountService.repository.UserOAuthRepository;
 import dartoo.accountService.security.oauth.userInfo.FetchOAuthUserInfo;
+import dartoo.accountService.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,7 @@ public class SocialLoginService {
     private final UserEntityRepository userEntityRepository;
     private final UserOAuthRepository userOAuthRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserService userService;
 
     //OAuth 로그인 정보 존재 여부에 따라 회원가입인지 아닌지 여부 결정해서 알려줌.
     @Transactional
@@ -75,7 +78,8 @@ public class SocialLoginService {
         // -> 신규 가입 유저임을 알리고, 기본 프로필 정보로 OAuth 인증 서버에서 제공한 사용자 프로필 정보 이용
         // 노션 OAuth 로그인 페이지 1-a
         UserEntity newUser = createNewUser(userInfo,newEmail);
-        attachUserOAuth(newUser,userInfo);
+        UserEntity savedUser = userService.saveUserWithDefaultSettings(newUser);
+        attachUserOAuth(savedUser,userInfo);
         return new SocialLoginResultDto(newUser,true);
     }
 
@@ -89,14 +93,17 @@ public class SocialLoginService {
         }
         String nickname = (userInfo.getNickname()!=null&&!userInfo.getNickname().isBlank()) ?
                 userInfo.getNickname():userInfo.getProvider()+"_user_"+userInfo.getProviderId().substring(0,8);
-        UserEntity newUser =  UserEntity.builder()
+
+        FetchProfileDto profile = userInfo.getProfile();
+        return UserEntity.builder()
                 .userEmail(newEmail)
                 .password(passwordEncoder.encode("SOCIAL"+ UUID.randomUUID()))
                 .passwordSet(false)
                 .nickname(nickname)
                 .role(Role.USER)
+                .gender(profile.getGender())
+                .birthday(profile.getBirthday())
                 .build();
-        return userEntityRepository.save(newUser);
     }
 
     //UserOAuth 테이블에 새로운 UserEntity 정보를 연결해서 저장
