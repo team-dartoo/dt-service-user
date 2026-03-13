@@ -81,6 +81,6 @@ app:
 
 logging:
   level:
-    org.springframework.security: DEBUG
-    org.springframework.web: DEBUG
-    dartoo.accountService: DEBUG
+    org.springframework.security: ${SECURITY_LOG_LEVEL}
+    org.springframework.web: ${APP_LOG_LEVEL}
+    dartoo.accountService: ${APP_LOG_LEVEL}
