@@ -8,7 +8,6 @@ import dartoo.accountService.dto.core.*;
 import dartoo.accountService.dto.core.enums.PlanAction;
 import dartoo.accountService.dto.core.enums.PlanDuration;
 import dartoo.accountService.error.ApiException;
-import dartoo.accountService.error.ErrorCode;
 import dartoo.accountService.repository.UserEntityRepository;
 import dartoo.accountService.repository.core.UserPlanRepository;
 import lombok.RequiredArgsConstructor;
@@ -57,7 +56,7 @@ public class UserPlanService {
         UserEntity user = getCurrentUser();
         List<UserPlan> plans = userPlanRepository.findAllByUser_IdOrderByStartAtDesc(user.getId());
         return PlanHistoryListResponse.builder()
-                .planHisotryList(plans.stream().map(p-> PlanHistoryResponse.builder()
+                .planHistoryList(plans.stream().map(p-> PlanHistoryResponse.builder()
                         .plan(p.getPlan())
                         .status(p.getStatus())
                         .startAt(p.getStartAt())
