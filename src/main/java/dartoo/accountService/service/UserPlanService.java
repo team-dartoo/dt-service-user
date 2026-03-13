@@ -86,6 +86,11 @@ public class UserPlanService {
             if (hasPaidHistory) throw new ApiException(TRIAL_NOT_ALLOWED_FOR_EXISTING_CUSTOMER);
         }
 
+        // null 체크를 switch 앞에 추가
+        if (request.getAction() == null) {
+            throw new ApiException(INVALID_UPDATE_PLAN_ACTION);
+        }
+
         switch (request.getAction()){
             case SUBSCRIBE, RENEW -> {
                 //requestDto 검증 로직
