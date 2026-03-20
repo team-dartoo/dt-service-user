@@ -1,5 +1,7 @@
 package dartoo.accountService.service;
 
+import dartoo.accountService.domain.UserAgreed;
+import dartoo.accountService.domain.UserPreference;
 import dartoo.accountService.domain.enums.Gender;
 import dartoo.accountService.domain.enums.Role;
 import dartoo.accountService.domain.UserEntity;
@@ -7,9 +9,8 @@ import dartoo.accountService.dto.account.ChangePasswordDto;
 import dartoo.accountService.dto.account.UserRequestDto;
 import dartoo.accountService.dto.account.UserResponseDto;
 import dartoo.accountService.error.ApiException;
-import dartoo.accountService.repository.RefreshTokenRepository;
-import dartoo.accountService.repository.UserEntityRepository;
-import dartoo.accountService.repository.UserOAuthRepository;
+import dartoo.accountService.repository.*;
+import dartoo.accountService.repository.core.UserCorpBookmarkRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,6 +49,13 @@ public class UserServiceTest {
     RefreshTokenRepository refreshTokenRepository;
     @Mock
     UserOAuthRepository userOAuthRepository;
+    //CoreService 비즈니스 로직 추가 후 추가된 Mock 추가
+    @Mock
+    UserAgreedRepository userAgreedRepository;
+    @Mock
+    UserPreferenceRepository userPreferenceRepository;
+    @Mock
+    UserCorpBookmarkRepository userCorpBookmarkRepository;
 
     //가짜 객체 주입 후 테스트
     @InjectMocks
@@ -165,6 +173,8 @@ public class UserServiceTest {
         Long userId = userService.addUser(dto);
         //then
         assertThat(userId).isEqualTo(12L);
+        then(userAgreedRepository).should().save(any(UserAgreed.class));
+        then(userPreferenceRepository).should().save(any(UserPreference.class));
         then(userEntityRepository).should().save(argThat(userEntity->
                 userEntity.getUserEmail().equals("newUser@test.com") &&
                 userEntity.getPassword().equals("newUserPassword") &&
@@ -172,6 +182,9 @@ public class UserServiceTest {
                 userEntity.getRole().equals(Role.USER) &&
                 userEntity.getGender().equals(Gender.FEMALE) &&
                 userEntity.getBirthday().equals(LocalDate.of(2002,11,1))));
+        // saveUserWithDefaultSettings 검증 - 신규 가입 시 기본 설정이 함께 생성되는지
+        then(userAgreedRepository).should().save(any(UserAgreed.class));
+        then(userPreferenceRepository).should().save(any(UserPreference.class));
     }
 
     @Test
@@ -373,6 +386,10 @@ public class UserServiceTest {
         //when
         userService.deleteUser(dto);
         //then
+        then(refreshTokenRepository).should().deleteAllByUserEntity(testUser);
+        then(userOAuthRepository).should().deleteAllByUserEntity(testUser);
+        then(userEntityRepository).should().deleteByUserEmail(testUser.getUserEmail());
+        then(userCorpBookmarkRepository).should().deleteAllByUser_Id(testUser.getId());
         then(refreshTokenRepository).should().deleteAllByUserEntity(testUser);
         then(userOAuthRepository).should().deleteAllByUserEntity(testUser);
         then(userEntityRepository).should().deleteByUserEmail(testUser.getUserEmail());
