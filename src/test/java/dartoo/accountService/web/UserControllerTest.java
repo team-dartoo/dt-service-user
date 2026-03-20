@@ -8,6 +8,7 @@ import dartoo.accountService.dto.account.UserResponseDto;
 import dartoo.accountService.error.ApiException;
 import dartoo.accountService.error.GlobalExceptionAdvice;
 import dartoo.accountService.service.UserService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +19,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
@@ -46,6 +48,11 @@ class UserControllerTest {
     @TestConfiguration
     static class MockConfig {
         @Bean UserService userService() { return mock(UserService.class); }
+    }
+
+    @BeforeEach
+    void setUp() {
+        reset(userService);
     }
 
     @Test
@@ -108,6 +115,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("PATCH /api/users/updated - @Validated 오류 시 , json 형식 오류 시 응답 코드 400 반환")
+    @WithMockUser(username = "test@test.com", roles = "USER")
     void updateValidationError() throws Exception {
         //given
         UserRequestDto dto = new UserRequestDto();
@@ -159,6 +167,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("PATCH /api/users/password - 비밀번호 변경 성공시 응답 코드 204 반환")
+    @WithMockUser(username = "test@test.com", roles = "USER")
     void passwordSuccess() throws Exception {
         //given
         ChangePasswordDto dto = new ChangePasswordDto();
