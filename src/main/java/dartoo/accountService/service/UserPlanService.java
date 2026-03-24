@@ -8,7 +8,6 @@ import dartoo.accountService.dto.core.*;
 import dartoo.accountService.dto.core.enums.PlanAction;
 import dartoo.accountService.dto.core.enums.PlanDuration;
 import dartoo.accountService.error.ApiException;
-import dartoo.accountService.error.ErrorCode;
 import dartoo.accountService.repository.UserEntityRepository;
 import dartoo.accountService.repository.core.UserPlanRepository;
 import lombok.RequiredArgsConstructor;
@@ -57,7 +56,7 @@ public class UserPlanService {
         UserEntity user = getCurrentUser();
         List<UserPlan> plans = userPlanRepository.findAllByUser_IdOrderByStartAtDesc(user.getId());
         return PlanHistoryListResponse.builder()
-                .planHisotryList(plans.stream().map(p-> PlanHistoryResponse.builder()
+                .planHistoryList(plans.stream().map(p-> PlanHistoryResponse.builder()
                         .plan(p.getPlan())
                         .status(p.getStatus())
                         .startAt(p.getStartAt())
@@ -84,6 +83,11 @@ public class UserPlanService {
                     user.getId(), List.of(PlanDuration.MONTHLY, PlanDuration.YEARLY)
             );
             if (hasPaidHistory) throw new ApiException(TRIAL_NOT_ALLOWED_FOR_EXISTING_CUSTOMER);
+        }
+
+        // null 체크를 switch 앞에 추가
+        if (request.getAction() == null) {
+            throw new ApiException(INVALID_UPDATE_PLAN_ACTION);
         }
 
         switch (request.getAction()){

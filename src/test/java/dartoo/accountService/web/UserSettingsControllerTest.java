@@ -6,6 +6,7 @@ import dartoo.accountService.dto.account.PreferenceSettingsDto;
 import dartoo.accountService.error.ApiException;
 import dartoo.accountService.error.GlobalExceptionAdvice;
 import dartoo.accountService.service.UserSettingsService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,11 @@ class UserSettingsControllerTest {
     static class MockConfig {
         @Bean
         UserSettingsService userSettingsService() { return mock(UserSettingsService.class); }
+    }
+
+    @BeforeEach
+    void setUp() {
+        reset(userSettingsService);
     }
 
     @Test

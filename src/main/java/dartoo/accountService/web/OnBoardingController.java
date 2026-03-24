@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,6 +20,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class OnBoardingController {
     private final OnBoardingService onBoardingService;
 
+    //프런트에서 이메일 안받음
+    private String currentEmail(){
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth.getName();
+    }
+
     /*
      * - 비밀번호가 아직 없는 계정에 한해 비밀번호를 최초로 설정하고,
      *   프로필 정보(닉네임/생년월일/성별)를 한 번에 갱신한다.
@@ -28,9 +35,8 @@ public class OnBoardingController {
      *  - 클라이언트는 온보딩 페이지로 이동 후, 사용자의 프로필 설정이 끝났으면 이 API 를 호출
      */
     @PostMapping("/complete")
-    public ResponseEntity<OnBoardingResponseDto> initOnBoarding(@Valid @RequestBody OnBoardingRequestDto onBoardingRequestDto,
-                                               Authentication auth){
-        String email = auth.getName();
+    public ResponseEntity<OnBoardingResponseDto> initOnBoarding(@Valid @RequestBody OnBoardingRequestDto onBoardingRequestDto){
+        String email = currentEmail();
         OnBoardingResponseDto responseDto = onBoardingService.initOnBoarding(email, onBoardingRequestDto);
         return ResponseEntity.ok(responseDto);
     }

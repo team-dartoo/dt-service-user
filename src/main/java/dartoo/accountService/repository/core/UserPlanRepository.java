@@ -32,8 +32,10 @@ public interface UserPlanRepository extends JpaRepository<UserPlan,Long> {
             PlanStatus status
     );
 
+    //미래 연장분 플랜 존재 여부 확인하기
     boolean existsByUser_IdAndStartAtGreaterThanEqualAndStatus(Long id, Instant currentExpireAt, PlanStatus planStatus);
 
+    //만료된 플랜 조회하기
     List<UserPlan> findAllByExpireAtBeforeAndStatusIn(Instant now, List<PlanStatus> active);
 
     @Query("""
@@ -45,11 +47,14 @@ public interface UserPlanRepository extends JpaRepository<UserPlan,Long> {
               and up.expireAt > :now
               and up.status = :status
             """)
+    //특정 사용자들의 활성 플랜 조회하기
     List<UserPlan> findAllActivePlansForUsers(@Param("userIds") List<Long> userIds,
                                               @Param("now") Instant now,
                                               @Param("status") PlanStatus status);
 
+    //사용자가 특정 기간의 플랜을 가지고 있는지 확인하기
     boolean existsByUser_IdAndDuration(Long id, PlanDuration duration);
 
-    boolean existsByUser_IdAndDurationIn(Long id, List<PlanDuration> monthly);
+    //사용자가 특정 기간들 중 하나의 플랜을 가지고 있는지 확인하기
+    boolean existsByUser_IdAndDurationIn(Long id, List<PlanDuration> durations);
 }

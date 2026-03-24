@@ -14,12 +14,12 @@ import java.time.LocalDate;
 public class OnBoardingRequestDto {
     @NotBlank
     String nickname;
-    @NotNull
+    @NotBlank //이메일은 빈칸도 막아야 하니까
     String email;
     @Size(min = 8)
     String password;
-    @NotBlank
+    @NotNull //LocalDate와 Enum은 @NotBlank 불가
     LocalDate birthday;
-    @NotBlank
+    @NotNull
     Gender gender;
 }
