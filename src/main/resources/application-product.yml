@@ -80,6 +80,9 @@ app:
     link-cookie-name: "oauth-link-token-dartoo"
     issuer: "Dartoo"
 
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000} # CORS 허용 URL을 설정
+
 # Actuator 설정 - Health endpoint를 인증 없이 접근 가능하도록 설정
 management:
   endpoints:
