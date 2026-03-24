@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dt-user-config
+  labels:
+    app: dt-user
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/part-of: dartoo
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/name: dt-user
+data:
+  SERVER_PORT: "8080"
+  SPRING_APPLICATION_NAME: dt-service-user
+  SPRING_PROFILES_ACTIVE: product
+  SPRING_JPA_HIBERNATE_DDL_AUTO: update
+  SPRING_SHUTDOWN_TIMEOUT: 90s
+  SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+  SPRING_JPA_HIBERNATE_TIME_ZONE: UTC
+  SPRING_JACKSON_TIME_ZONE: UTC
+  DB_URL: jdbc:mysql://mysql-svc:3306/dartoo?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+  HIBERNATE_DIALECT: org.hibernate.dialect.MySQL8Dialect

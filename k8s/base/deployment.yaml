@@ -2,14 +2,12 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: dt-user
-  namespace: dartoo
   labels:
     app: dt-user
-    app.kubernetes.io/managed-by: kubectl
+    app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/part-of: dartoo
     app.kubernetes.io/component: backend
     app.kubernetes.io/name: dt-user
-    app.kubernetes.io/instance: dt-user-dartoo
 spec:
   selector:
     matchLabels:
@@ -25,13 +23,9 @@ spec:
       labels:
         app: dt-user
     spec:
-      # initContainers:
-        # Init containers are exactly like regular containers, except:
-          # - Init containers always run to completion.
-          # - Each init container must complete successfully before the next one starts.
       containers:
       - name: dt-user
-        image:  ghcr.io/team-dartoo/dt-service-user:latest
+        image: ghcr.io/team-dartoo/dt-service-user:latest
         resources:
           requests:
             cpu: 250m
