@@ -72,4 +72,4 @@ spec:
           name: http
       imagePullSecrets:
       - name: ghcr-secret
-      restartPolicy: Always
+

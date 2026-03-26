@@ -4,12 +4,12 @@ namespace: dartoo
 resources:
   - ../../base
   - configmap.yaml
-  - secret.yaml
+  - sealed-secret.yaml
 patches:
   - patch: |-
       - op: replace
         path: /spec/replicas
-        value: 2
+        value: 1
     target:
       kind: Deployment
       name: dt-user
