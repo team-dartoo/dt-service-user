@@ -42,3 +42,4 @@ out/
 
 ### k8s ###
 **/secret.yaml
+**/ghcr-secret.yaml
