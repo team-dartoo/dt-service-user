@@ -134,4 +134,22 @@ class UserEntityRepositoryTest {
         assertThat(newUser.getBirthday()).isEqualTo(LocalDate.of(2009, 2, 27));
         assertThat(newUser.getGender()).isEqualTo(Gender.FEMALE);
     }
+
+    @DisplayName("changeProfile에 null 전달 시 기존 birthday/gender가 유지된다")
+    @Test
+    void updateUserEntityNullBirthdayAndGender(){
+        //given: testUser1은 birthday와 gender를 가지고 있음
+        String target = "admin@test.com";
+        UserEntity user = userEntityRepository.findByUserEmail(target).get();
+        LocalDate originalBirthday = user.getBirthday();
+        Gender originalGender = user.getGender();
+        //when: birthday/gender를 null로 changeProfile 호출
+        user.changeProfile("updated_admin", null, null);
+        userEntityRepository.flush();
+        //then: birthday와 gender는 변경되지 않아야 함
+        UserEntity updated = userEntityRepository.findByUserEmail(target).get();
+        assertThat(updated.getNickname()).isEqualTo("updated_admin");
+        assertThat(updated.getBirthday()).isEqualTo(originalBirthday);
+        assertThat(updated.getGender()).isEqualTo(originalGender);
+    }
 }

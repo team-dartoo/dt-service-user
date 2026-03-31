@@ -1,7 +1,6 @@
 package dartoo.accountService.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dartoo.accountService.domain.enums.Gender;
 import dartoo.accountService.dto.oauth.OnBoardingRequestDto;
 import dartoo.accountService.dto.oauth.OnBoardingResponseDto;
 import dartoo.accountService.error.ApiException;
@@ -20,6 +19,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+
+import dartoo.accountService.domain.enums.Gender;
 
 import java.time.LocalDate;
 
@@ -63,6 +64,34 @@ class OnBoardingControllerTest {
                 .email("test@test.com")
                 .password("password123")
                 .nickname("testNickname")
+                .build();
+
+        OnBoardingResponseDto responseDto = OnBoardingResponseDto.builder()
+                .userEmail("test@test.com")
+                .isPasswordSet(true)
+                .nickname("testNickname")
+                .build();
+
+        given(onBoardingService.initOnBoarding(eq("test@test.com"), any(OnBoardingRequestDto.class)))
+                .willReturn(responseDto);
+        //when, then
+        mockMvc.perform(post("/api/users/onboarding/complete")
+                        .contentType(APPLICATION_JSON_VALUE)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userEmail").value("test@test.com"))
+                .andExpect(jsonPath("$.isPasswordSet").value(true))
+                .andExpect(jsonPath("$.nickname").value("testNickname"));
+    }
+
+    @Test
+    @DisplayName("POST /api/users/onboarding/complete - birthday와 gender를 포함해도 온보딩 성공 시 200 응답")
+    void completeOnBoardingSuccessWithOptionalFields() throws Exception {
+        //given
+        OnBoardingRequestDto requestDto = OnBoardingRequestDto.builder()
+                .email("test@test.com")
+                .password("password123")
+                .nickname("testNickname")
                 .birthday(LocalDate.of(2000, 11, 16))
                 .gender(Gender.MALE)
                 .build();
@@ -82,9 +111,6 @@ class OnBoardingControllerTest {
                         .contentType(APPLICATION_JSON_VALUE)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.userEmail").value("test@test.com"))
-                .andExpect(jsonPath("$.isPasswordSet").value(true))
-                .andExpect(jsonPath("$.nickname").value("testNickname"))
                 .andExpect(jsonPath("$.birthday").value("2000-11-16"))
                 .andExpect(jsonPath("$.gender").value("MALE"));
     }
@@ -97,8 +123,6 @@ class OnBoardingControllerTest {
                 .email("test@test.com")
                 .password("short") // @Size(min = 8) 위반
                 .nickname("testNickname")
-                .birthday(LocalDate.of(2000, 11, 16))
-                .gender(Gender.MALE)
                 .build();
 
         //when,then
@@ -121,8 +145,6 @@ class OnBoardingControllerTest {
                 .email("test@test.com")
                 .password("password123")
                 .nickname("") // @NotBlank 위반
-                .birthday(LocalDate.of(2000, 11, 16))
-                .gender(Gender.MALE)
                 .build();
 
         //when,then
@@ -163,8 +185,6 @@ class OnBoardingControllerTest {
                 .email("notfound@test.com")
                 .password("password123")
                 .nickname("testNickname")
-                .birthday(LocalDate.of(2000, 11, 16))
-                .gender(Gender.MALE)
                 .build();
 
         given(onBoardingService.initOnBoarding(anyString(), any(OnBoardingRequestDto.class)))
@@ -187,8 +207,6 @@ class OnBoardingControllerTest {
                 .email("test@test.com")
                 .password("password123")
                 .nickname("testNickname")
-                .birthday(LocalDate.of(2000, 11, 16))
-                .gender(Gender.MALE)
                 .build();
 
         given(onBoardingService.initOnBoarding(anyString(), any(OnBoardingRequestDto.class)))
@@ -211,8 +229,6 @@ class OnBoardingControllerTest {
                 .email("other@test.com") // 인증된 이메일과 다른 경우
                 .password("password123")
                 .nickname("testNickname")
-                .birthday(LocalDate.of(2000, 11, 16))
-                .gender(Gender.MALE)
                 .build();
 
         given(onBoardingService.initOnBoarding(anyString(), any(OnBoardingRequestDto.class)))

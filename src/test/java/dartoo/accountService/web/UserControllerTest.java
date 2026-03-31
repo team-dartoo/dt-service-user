@@ -119,9 +119,9 @@ class UserControllerTest {
     void updateValidationError() throws Exception {
         //given
         UserRequestDto dto = new UserRequestDto();
-        dto.setNickname("newName");
+//        dto.setNickname("newName"); @NotNull인데 넣지 않은 경우
         dto.setBirthday(LocalDate.of(2002,11,1));
-//        dto.setGender(Gender.MALE); @NotNull인데 넣지 않은 경우
+        dto.setGender(Gender.MALE);
 
         //when,then
         mockMvc.perform(patch("/api/users/update")
