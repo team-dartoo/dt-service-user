@@ -2,7 +2,6 @@ package dartoo.accountService.dto.oauth;
 
 import dartoo.accountService.domain.enums.Gender;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Builder;
 import lombok.Data;
@@ -18,8 +17,6 @@ public class OnBoardingRequestDto {
     String email;
     @Size(min = 8)
     String password;
-    @NotNull //LocalDate와 Enum은 @NotBlank 불가
     LocalDate birthday;
-    @NotNull
     Gender gender;
 }
