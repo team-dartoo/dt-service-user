@@ -92,8 +92,6 @@ class AuthControllerTest {
         dto = new UserRequestDto();
         dto.setUserEmail(testUser.getUserEmail());
         dto.setPassword("password");
-        dto.setBirthday(testUser.getBirthday());
-        dto.setGender(testUser.getGender());
         dto.setNickname(testUser.getNickname());
     }
 
