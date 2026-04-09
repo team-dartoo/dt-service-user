@@ -55,8 +55,6 @@ class OnBoardingServiceTest {
                 .email("newuser@test.com")
                 .password("newPassword123")
                 .nickname("새유저")
-                .birthday(LocalDate.of(2000, 5, 15))
-                .gender(Gender.FEMALE)
                 .build();
 
         given(userEntityRepository.findByUserEmail("newuser@test.com")).willReturn(Optional.of(testUser));
@@ -69,12 +67,46 @@ class OnBoardingServiceTest {
         assertThat(response.getUserEmail()).isEqualTo("newuser@test.com");
         assertThat(response.getIsPasswordSet()).isTrue();
         assertThat(response.getNickname()).isEqualTo("새유저");
-        assertThat(response.getBirthday()).isEqualTo(LocalDate.of(2000, 5, 15));
-        assertThat(response.getGender()).isEqualTo(Gender.FEMALE);
+        assertThat(response.getBirthday()).isNull();
+        assertThat(response.getGender()).isNull();
 
         then(userEntityRepository).should().findByUserEmail("newuser@test.com");
         then(passwordEncoder).should().encode("newPassword123");
         then(passwordEncoder).should(times(1)).encode(any());
+    }
+
+    @Test
+    @DisplayName("온보딩 초기화 성공 - birthday와 gender를 함께 전달하면 응답에 반영된다")
+    void initOnBoarding_successWithOptionalFields() {
+        //given
+        UserEntity testUser = UserEntity.builder()
+                .id(1L)
+                .userEmail("newuser@test.com")
+                .password(null)
+                .nickname(null)
+                .role(Role.USER)
+                .gender(null)
+                .birthday(null)
+                .passwordSet(false)
+                .build();
+
+        OnBoardingRequestDto requestDto = OnBoardingRequestDto.builder()
+                .email("newuser@test.com")
+                .password("newPassword123")
+                .nickname("새유저")
+                .birthday(LocalDate.of(2000, 5, 15))
+                .gender(Gender.FEMALE)
+                .build();
+
+        given(userEntityRepository.findByUserEmail("newuser@test.com")).willReturn(Optional.of(testUser));
+        given(passwordEncoder.encode("newPassword123")).willReturn("encodedPassword123");
+
+        //when
+        OnBoardingResponseDto response = onBoardingService.initOnBoarding("newuser@test.com", requestDto);
+
+        //then
+        assertThat(response.getBirthday()).isEqualTo(LocalDate.of(2000, 5, 15));
+        assertThat(response.getGender()).isEqualTo(Gender.FEMALE);
     }
 
     @Test
@@ -85,8 +117,6 @@ class OnBoardingServiceTest {
                 .email("nonexistent@test.com")
                 .password("newPassword123")
                 .nickname("새유저")
-                .birthday(LocalDate.of(2000, 5, 15))
-                .gender(Gender.FEMALE)
                 .build();
 
         given(userEntityRepository.findByUserEmail("nonexistent@test.com")).willReturn(Optional.empty());
@@ -118,8 +148,6 @@ class OnBoardingServiceTest {
                 .email("onboarded@test.com")
                 .password("newPassword123")
                 .nickname("새닉네임")
-                .birthday(LocalDate.of(1995, 3, 10))
-                .gender(Gender.MALE)
                 .build();
 
         given(userEntityRepository.findByUserEmail("onboarded@test.com")).willReturn(Optional.of(onboardedUser));
@@ -140,8 +168,6 @@ class OnBoardingServiceTest {
                 .email("different@test.com")
                 .password("newPassword123")
                 .nickname("새유저")
-                .birthday(LocalDate.of(2000, 5, 15))
-                .gender(Gender.FEMALE)
                 .build();
 
         //when, then

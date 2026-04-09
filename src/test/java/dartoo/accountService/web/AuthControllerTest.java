@@ -92,8 +92,6 @@ class AuthControllerTest {
         dto = new UserRequestDto();
         dto.setUserEmail(testUser.getUserEmail());
         dto.setPassword("password");
-        dto.setBirthday(testUser.getBirthday());
-        dto.setGender(testUser.getGender());
         dto.setNickname(testUser.getNickname());
     }
 
@@ -164,6 +162,27 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/auth/signup")
                 .contentType(APPLICATION_JSON_VALUE)
                 .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.email").value("test@test.com"));
+    }
+
+    @Test
+    @DisplayName("POST - /api/auth/signup - birthday와 gender를 포함해도 회원가입 성공 후 201 + email 반환")
+    void signupCreatedWithOptionalFields() throws Exception{
+        //given
+        UserRequestDto fullDto = new UserRequestDto();
+        fullDto.setUserEmail("test@test.com");
+        fullDto.setPassword("password");
+        fullDto.setNickname("테스터");
+        fullDto.setBirthday(LocalDate.of(2000, 11, 16));
+        fullDto.setGender(Gender.MALE);
+
+        given(userService.addUser(eq(fullDto))).willReturn(1L);
+        given(userService.getUserById(1L)).willReturn(testUser);
+        //when,then
+        mockMvc.perform(post("/api/auth/signup")
+                        .contentType(APPLICATION_JSON_VALUE)
+                        .content(objectMapper.writeValueAsString(fullDto)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.email").value("test@test.com"));
     }
