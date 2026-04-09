@@ -17,7 +17,7 @@ data:
   SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
   SPRING_JPA_HIBERNATE_TIME_ZONE: UTC
   SPRING_JACKSON_TIME_ZONE: UTC
-  DB_URL: jdbc:postgresql://db-svc:3306/dartoo?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+  DB_URL: jdbc:postgresql://db-svc:5432/dartoo?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
   HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
   SECURITY_LOG_LEVEL: "INFO"
   APP_LOG_LEVEL: "INFO"

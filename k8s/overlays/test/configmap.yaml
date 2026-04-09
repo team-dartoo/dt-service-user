@@ -17,7 +17,7 @@ data:
   SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
   SPRING_JPA_HIBERNATE_TIME_ZONE: UTC
   SPRING_JACKSON_TIME_ZONE: UTC
-  DB_URL: jdbc:postgresql://db-svc:3306/dt-test?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+  DB_URL: jdbc:postgresql://db-svc:5432/dt-test
   HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
   CORS_ALLOWED_ORIGINS: "http://localhost:5173,http://100.87.110.21:5173"
   SECURITY_LOG_LEVEL: "DEBUG"
