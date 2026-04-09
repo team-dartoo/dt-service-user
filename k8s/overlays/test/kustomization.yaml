@@ -15,16 +15,20 @@ patches:
         value: 1
       - op: replace
         path: /spec/template/spec/containers/0/resources/requests/cpu
-        value: 100m
+        value: 250m
       - op: replace
         path: /spec/template/spec/containers/0/resources/requests/memory
-        value: 256Mi
+        value: 512Mi
       - op: replace
         path: /spec/template/spec/containers/0/resources/limits/cpu
-        value: 200m
+        value: 500m
       - op: replace
         path: /spec/template/spec/containers/0/resources/limits/memory
-        value: 512Mi
+        value: 1Gi
+      - op: remove
+        path: /spec/template/spec/containers/0/env/0
+      - op: remove
+        path: /spec/template/spec/containers/0/env/0
     target:
       kind: Deployment
       name: dt-user
