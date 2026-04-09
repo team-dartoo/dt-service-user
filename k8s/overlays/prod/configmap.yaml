@@ -14,8 +14,10 @@ data:
   SPRING_PROFILES_ACTIVE: product
   SPRING_JPA_HIBERNATE_DDL_AUTO: update
   SPRING_SHUTDOWN_TIMEOUT: 90s
-  SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+  SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
   SPRING_JPA_HIBERNATE_TIME_ZONE: UTC
   SPRING_JACKSON_TIME_ZONE: UTC
-  DB_URL: jdbc:mysql://mysql-svc:3306/dartoo?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-  HIBERNATE_DIALECT: org.hibernate.dialect.MySQL8Dialect
+  DB_URL: jdbc:postgresql://db-svc:3306/dartoo?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+  HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
+  SECURITY_LOG_LEVEL: "INFO"
+  APP_LOG_LEVEL: "INFO"

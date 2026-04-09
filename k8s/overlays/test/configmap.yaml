@@ -11,11 +11,14 @@ metadata:
 data:
   SERVER_PORT: "8080"
   SPRING_APPLICATION_NAME: dt-service-user
-  SPRING_PROFILES_ACTIVE: test
+  SPRING_PROFILES_ACTIVE: product
   SPRING_JPA_HIBERNATE_DDL_AUTO: update
   SPRING_SHUTDOWN_TIMEOUT: 90s
-  SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+  SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
   SPRING_JPA_HIBERNATE_TIME_ZONE: UTC
   SPRING_JACKSON_TIME_ZONE: UTC
-  DB_URL: jdbc:mysql://mysql-svc:3306/dartoo?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-  HIBERNATE_DIALECT: org.hibernate.dialect.MySQL8Dialect
+  DB_URL: jdbc:postgresql://db-svc:3306/dt-test?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+  HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
+  CORS_ALLOWED_ORIGINS: "http://localhost:5173,http://100.87.110.21:5173"
+  SECURITY_LOG_LEVEL: "DEBUG"
+  APP_LOG_LEVEL: "DEBUG"
