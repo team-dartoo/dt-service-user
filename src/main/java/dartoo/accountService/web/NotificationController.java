@@ -1,10 +1,8 @@
 package dartoo.accountService.web;
 
-import dartoo.accountService.dto.core.NotificationCreateRequest;
 import dartoo.accountService.dto.core.NotificationListResponse;
 import dartoo.accountService.dto.core.NotificationResponse;
 import dartoo.accountService.service.NotificationService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,11 +16,6 @@ public class NotificationController {
     @GetMapping
     public ResponseEntity<NotificationListResponse> getNotificationList(){
         return ResponseEntity.ok(notificationService.readAll());
-    }
-
-    @PostMapping
-    public ResponseEntity<NotificationResponse> addNotification(@Valid @RequestBody NotificationCreateRequest request){
-        return ResponseEntity.ok(notificationService.addNotification(request));
     }
 
     @PatchMapping("/{id}")

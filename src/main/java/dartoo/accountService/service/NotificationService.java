@@ -3,9 +3,11 @@ package dartoo.accountService.service;
 import dartoo.accountService.domain.UserEntity;
 import dartoo.accountService.domain.UserNotification;
 import dartoo.accountService.domain.enums.NotificationStatus;
-import dartoo.accountService.dto.core.NotificationCreateRequest;
+import dartoo.accountService.domain.enums.NotificationType;
 import dartoo.accountService.dto.core.NotificationListResponse;
 import dartoo.accountService.dto.core.NotificationResponse;
+import dartoo.accountService.dto.internal.BulkNotificationResponse;
+import dartoo.accountService.dto.internal.InternalNotificationCreateRequest;
 import dartoo.accountService.error.ApiException;
 import dartoo.accountService.repository.UserEntityRepository;
 import dartoo.accountService.repository.core.UserNotificationRepository;
@@ -17,7 +19,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static dartoo.accountService.error.ErrorCode.NOTIFICATION_NOT_FOUND;
 import static dartoo.accountService.error.ErrorCode.USER_NOT_FOUND;
@@ -33,24 +40,72 @@ public class NotificationService {
     private final UserNotificationRepository userNotificationRepository;
     private final UserEntityRepository userEntityRepository;
 
-    //DB에 알림 추가
-    public NotificationResponse addNotification(NotificationCreateRequest request){
-        UserEntity user = getCurrentUser();
-        UserNotification saved = userNotificationRepository.save(
-                UserNotification.builder()
-                        .user(user)
-                        .title(request.getTitle())
-                        .content(request.getContent())
-                        .status(NotificationStatus.UNREAD)
-                        .build()
-        );
-        return NotificationResponse.builder()
-                .id(saved.getId())
-                .title(saved.getTitle())
-                .content(saved.getContent())
-                .status(saved.getStatus())
-                .createdAt(saved.getCreatedAt())
-                .build();
+    //내부 서비스 호출을 통한 알림 일괄 생성 (SecurityContext 사용 금지)
+    public BulkNotificationResponse bulkCreateInternal(List<InternalNotificationCreateRequest> requests) {
+        int total = requests.size();
+        int skipped = 0;
+
+        // userId 파싱 — 유효한 Long 값만 수집 (중복 userId 허용)
+        Set<Long> userIds = new HashSet<>();
+        for (InternalNotificationCreateRequest req : requests) {
+            try {
+                userIds.add(Long.parseLong(req.getUserId()));
+            } catch (NumberFormatException e) {
+                log.warn("Skip notification: invalid userId format '{}'", req.getUserId());
+            }
+        }
+        if (userIds.isEmpty()) {
+            return BulkNotificationResponse.builder()
+                    .total(total).created(0).skipped(total).build();
+        }
+
+        // 배치 조회로 N+1 해소 (N회 findById → 1회 findAllById)
+        Map<Long, UserEntity> userMap = userEntityRepository.findAllById(userIds)
+                .stream().collect(Collectors.toMap(UserEntity::getId, u -> u));
+
+        // 원본 리스트를 순회하며 알림 생성 (동일 userId 다중 알림 지원)
+        List<UserNotification> toSave = new ArrayList<>();
+        for (InternalNotificationCreateRequest req : requests) {
+            Long userId;
+            try {
+                userId = Long.parseLong(req.getUserId());
+            } catch (NumberFormatException e) {
+                skipped++;
+                continue; // 이미 위에서 경고 로그 출력
+            }
+            UserEntity user = userMap.get(userId);
+            if (user == null) {
+                log.warn("Skip notification: user not found for id={}", userId);
+                skipped++;
+                continue;
+            }
+            NotificationType type;
+            String eventType = req.getEventType();
+            if ("disclosure.created".equals(eventType) || "disclosure.updated".equals(eventType)) {
+                type = NotificationType.DISCLOSURE_UPDATE;
+            } else if ("summary.updated".equals(eventType)) {
+                type = NotificationType.AI_SUMMARY;
+            } else {
+                log.warn("Skip notification: unknown eventType '{}'", eventType);
+                skipped++;
+                continue;
+            }
+            toSave.add(UserNotification.builder()
+                    .user(user)
+                    .title(req.getTitle())
+                    .receptNo(req.getReceptNo())
+                    .corpName(req.getCorpName())
+                    .corpCode(req.getCorpCode())
+                    .eventType(type)
+                    .summaryLines(req.getSummaryLines())
+                    .status(NotificationStatus.UNREAD)
+                    .build());
+        }
+        if (!toSave.isEmpty()) {
+            userNotificationRepository.saveAll(toSave);
+        }
+        return BulkNotificationResponse.builder()
+                .total(total).created(toSave.size()).skipped(skipped).build();
     }
 
     //DB에 알림 읽음으로 표시
@@ -61,11 +116,15 @@ public class NotificationService {
         notification.markRead(Instant.now());
         return NotificationResponse.builder()
                 .id(notification.getId())
+                .receptNo(notification.getReceptNo())
+                .type(notification.getEventType())
+                .corpName(notification.getCorpName())
+                .corpCode(notification.getCorpCode())
                 .title(notification.getTitle())
-                .content(notification.getContent())
                 .status(notification.getStatus())
                 .createdAt(notification.getCreatedAt())
                 .readAt(notification.getReadAt())
+                .summaryLines(notification.getSummaryLines())
                 .build();
     }
 
@@ -82,11 +141,15 @@ public class NotificationService {
         return NotificationListResponse.builder()
                 .notificationList(notifications.stream().map(n->NotificationResponse.builder()
                         .id(n.getId())
+                        .receptNo(n.getReceptNo())
+                        .type(n.getEventType())
+                        .corpName(n.getCorpName())
+                        .corpCode(n.getCorpCode())
                         .title(n.getTitle())
-                        .content(n.getContent())
                         .status(n.getStatus())
                         .createdAt(n.getCreatedAt())
                         .readAt(n.getReadAt())
+                        .summaryLines(n.getSummaryLines())
                         .build()).toList())
                 .build();
     }
@@ -105,13 +168,6 @@ public class NotificationService {
     public void deleteAll(){
         UserEntity user = getCurrentUser();
 
-        //일일이 돌면서 쿼리 발생시키면 성능 저하 우려
-//        List<UserNotification> notifications = userNotificationRepository.findAllByUser_Id((user.getId()));
-//        //소프트 삭제
-//        for(UserNotification notification : notifications){
-//            notification.markDeleted();
-//        }
-
         //한번에 벌크 쿼리로 처리
         Instant deadline = Instant.now().minus(NOTIFICATION_TTL);
         int notifications = userNotificationRepository.softDeleteAllVisible(user.getId(),deadline,NotificationStatus.DELETED);
@@ -120,9 +176,6 @@ public class NotificationService {
     }
 
     private String getSessionEmail(){
-        //SecurityContextHolder.getContext().getAuthentication()에
-        //JWT 토큰 정보가 저장되도록 AuthenticationManger을설정해야 한다.
-        //->SecurityConfig.java 참조
         return SecurityContextHolder.getContext().getAuthentication().getName();
     }
 
@@ -131,9 +184,3 @@ public class NotificationService {
                 .orElseThrow(()->new ApiException(USER_NOT_FOUND));
     }
 }
-/*
-90일이 지나면 읽지 않아도 삭제된다.
-90일이 지나지 않아도 알림 삭제 버튼을 누르면,
-소프트 삭제되어, 사용자가 호출하면 보이지 않는다.
--> 스케줄러에 의해 90일이 지난 알림은 자동으로 삭제된다.
- */
