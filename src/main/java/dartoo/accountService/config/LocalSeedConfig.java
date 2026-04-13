@@ -150,6 +150,7 @@ public class LocalSeedConfig {
                     .duration(PlanDuration.MONTHLY)
                     .startAt(Instant.now().minusSeconds(3600*24*35))
                     .expireAt(Instant.now().minusSeconds(3600*24*5))
+                    .transactionId("sample1")
                     .build();
         }
         else{
@@ -160,6 +161,7 @@ public class LocalSeedConfig {
                     .duration(PlanDuration.MONTHLY)
                     .startAt(Instant.now().minusSeconds(3600*24*5))
                     .expireAt(Instant.now().plusSeconds(3600*24*25))
+                    .transactionId("sample2")
                     .build();
         }
         userPlanRepository.save(plan);
