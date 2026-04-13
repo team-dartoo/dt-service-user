@@ -60,6 +60,12 @@ public class UserPlan {
     @LastModifiedDate
     private Instant updatedAt;
 
+    @Column(nullable = false)
+    private String transactionId;
+
+    //결제 스토어에 따라 환불 로직이 달라진다.
+    private String store;
+
     public void changeStatus(PlanStatus status) {
         this.status = status;
     }
