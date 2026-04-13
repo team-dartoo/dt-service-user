@@ -67,7 +67,14 @@ public enum ErrorCode {
     INVALID_RENEW_DURATION(HttpStatus.BAD_REQUEST, "잘못된 연장 기간입니다"),
     ALREADY_SUBSCRIBED(HttpStatus.CONFLICT,"이미 구독한 사용자는 구독을 갱신해야 합니다."),
     TRIAL_ALREADY_USED(HttpStatus.CONFLICT,"이미 TRIAL을 사용한 사용자입니다."),
-    TRIAL_NOT_ALLOWED_FOR_EXISTING_CUSTOMER(HttpStatus.FORBIDDEN,"이미 유료 요금제 사용 경력이 있는 사용자입니다.");
+    TRIAL_NOT_ALLOWED_FOR_EXISTING_CUSTOMER(HttpStatus.FORBIDDEN,"이미 유료 요금제 사용 경력이 있는 사용자입니다."),
+
+    //RevenueCat 관련
+    INVALID_WEBHOOK_SECRET(HttpStatus.UNAUTHORIZED,"유효하지 않은 Webhook Secret입니다."),
+    INVALID_PRODUCT_ID(HttpStatus.BAD_REQUEST,"등록되지 않은 RevenueCat product_id입니다."),
+    REFUND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,"RevenueCat 환불 API 호출에 실패했습니다."),
+    APPLE_REFUND_REQUIRED(HttpStatus.METHOD_NOT_ALLOWED,"App Store 결제된 플랜의 경우에는 인 앱 환불이 불가합니다.");
+
     private final HttpStatus status;
     private final String message;
 }
