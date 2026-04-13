@@ -67,6 +67,8 @@ class UserPlanRepositoryTest {
                 .startAt(now.minus(10, ChronoUnit.DAYS))
                 .expireAt(now.plus(20, ChronoUnit.DAYS))
                 .createdAt(now.minus(10, ChronoUnit.DAYS))
+                .transactionId("tx_plan1")   // 추가
+                .store("PLAY_STORE")          // 추가
                 .build();
 
         plan2 = UserPlan.builder()
@@ -77,6 +79,8 @@ class UserPlanRepositoryTest {
                 .startAt(now.minus(400, ChronoUnit.DAYS))
                 .expireAt(now.minus(35, ChronoUnit.DAYS))
                 .createdAt(now.minus(400, ChronoUnit.DAYS))
+                .transactionId("tx_plan2")   // 추가
+                .store("APP_STORE")           // 추가
                 .build();
 
         entityManager.persist(plan1);
@@ -124,6 +128,8 @@ class UserPlanRepositoryTest {
                 .status(PlanStatus.ACTIVE)
                 .startAt(currentExpireAt)
                 .expireAt(currentExpireAt.plus(30, ChronoUnit.DAYS))
+                .transactionId("tx_future")  // 추가
+                .store("PLAY_STORE")          // 추가
                 .build();
         entityManager.persist(futurePlan);
         entityManager.flush();
@@ -193,5 +199,32 @@ class UserPlanRepositoryTest {
         );
         //then
         assertThat(hasPaid).isTrue();
+    }
+
+
+    @DisplayName("만료되지 않은 ACTIVE 플랜 전체 조회")
+    @Test
+    void findAllByUser_IdAndExpireAtAfterAndStatus() {
+        //when
+        List<UserPlan> result = userPlanRepository.findAllByUser_IdAndExpireAtAfterAndStatus(
+                testUser.getId(), QUERY_TIME, PlanStatus.ACTIVE
+        );
+        //then
+        // plan1(ACTIVE, 만료 안됨)만 조회, plan2(EXPIRED)는 제외
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getTransactionId()).isEqualTo("tx_plan1");
+    }
+
+    @DisplayName("transactionId와 상태로 플랜 조회하기")
+    @Test
+    void findTopByUser_IdAndTransactionIdAndStatusInOrderByExpireAtDesc() {
+        //when
+        Optional<UserPlan> result = userPlanRepository.findTopByUser_IdAndTransactionIdAndStatusInOrderByExpireAtDesc(
+                testUser.getId(), "tx_plan2", List.of(PlanStatus.ACTIVE, PlanStatus.CANCELLED, PlanStatus.EXPIRED)
+        );
+        //then
+        assertThat(result).isPresent();
+        assertThat(result.get().getTransactionId()).isEqualTo("tx_plan2");
+        assertThat(result.get().getStatus()).isEqualTo(PlanStatus.EXPIRED);
     }
 }
