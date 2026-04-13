@@ -53,6 +53,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll() //로그인 관련이니까.
                 .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll() //oauth2 로그인 관련
                 .requestMatchers("/actuator/health/**").permitAll() //헬스체크 관련
+                .requestMatchers("/api/webhooks/**").permitAll() // RevenueCat Webhook은 JWT가 없으므로.
                 .anyRequest().authenticated());
         http.sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.csrf(AbstractHttpConfigurer::disable);
