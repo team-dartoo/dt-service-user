@@ -22,7 +22,8 @@ import java.time.Instant;
                 @UniqueConstraint(name = "uk_user_bookmark_user_corp", columnNames = {"user_id", "corp_id"})
         },
         indexes = {
-                @Index(name = "idx_user_bookmark_user_created", columnList = "user_id, created_at DESC")
+                @Index(name = "idx_user_bookmark_user_created", columnList = "user_id, created_at DESC"),
+                @Index(name = "idx_user_bookmark_user_order", columnList = "user_id, display_order ASC")
         }
 )
 public class UserCorpBookmark {
@@ -34,8 +35,13 @@ public class UserCorpBookmark {
     @JoinColumn(name="user_id", nullable = false)
     private UserEntity user;
 
-    private String corpId;
+    @Column(name = "corp_id", nullable = false)
+    private String corpCode;
+
     private String corpName;
+
+    @Column(name = "display_order")
+    private Integer displayOrder;
 
     @CreatedDate
     private Instant createdAt;

@@ -77,27 +77,29 @@ class CorpBookmarkServiceTest {
 
         UserCorpBookmark bookmark1 = UserCorpBookmark.builder()
                 .user(testUser)
-                .corpId("CORP001")
+                .corpCode("CORP001")
                 .corpName("테스트 회사1")
+                .displayOrder(1)
                 .createdAt(now.minus(10, ChronoUnit.DAYS))
                 .build();
 
         UserCorpBookmark bookmark2 = UserCorpBookmark.builder()
                 .user(testUser)
-                .corpId("CORP002")
+                .corpCode("CORP002")
                 .corpName("테스트 회사2")
+                .displayOrder(0)
                 .createdAt(now.minus(5, ChronoUnit.DAYS))
                 .build();
 
-        given(userCorpBookmarkRepository.findAllByUser_IdOrderByCreatedAtDesc(1L))
-                .willReturn(List.of(bookmark2,bookmark1));
+        given(userCorpBookmarkRepository.findAllByUser_IdOrderByDisplayOrderAscIdAsc(1L))
+                .willReturn(List.of(bookmark2, bookmark1));
 
         //when
         BookmarkListResponse response = corpBookmarkService.listCorpBookmark();
 
         //then
         assertThat(response.getCorpList()).hasSize(2);
-        assertThat(response.getCorpList().get(0).getCorpId()).isEqualTo("CORP002");
+        assertThat(response.getCorpList().get(0).getCorpCode()).isEqualTo("CORP002");
     }
 
     @Test
@@ -105,25 +107,25 @@ class CorpBookmarkServiceTest {
     void addCorpBookmark_success() {
         //given
         given(userEntityRepository.findByUserEmail("test@test.com")).willReturn(Optional.of(testUser));
-        given(userCorpBookmarkRepository.existsByUser_IdAndCorpId(1L, "CORP001")).willReturn(false);
+        given(userCorpBookmarkRepository.existsByUser_IdAndCorpCode(1L, "CORP001")).willReturn(false);
 
         UserCorpBookmark savedBookmark = UserCorpBookmark.builder()
                 .user(testUser)
-                .corpId("CORP001")
+                .corpCode("CORP001")
                 .corpName("테스트 회사1")
                 .build();
 
         given(userCorpBookmarkRepository.save(any(UserCorpBookmark.class))).willReturn(savedBookmark);
 
         BookmarkCreateRequest request = new BookmarkCreateRequest();
-        request.setCorpId("CORP001");
+        request.setCorpCode("CORP001");
         request.setCorpName("테스트 회사1");
 
         //when
         BookmarkResponse response = corpBookmarkService.addCorpBookmark(request);
 
         //then
-        assertThat(response.getCorpId()).isEqualTo("CORP001");
+        assertThat(response.getCorpCode()).isEqualTo("CORP001");
         assertThat(response.getCorpName()).isEqualTo("테스트 회사1");
         then(userCorpBookmarkRepository).should().save(any(UserCorpBookmark.class));
     }
@@ -133,10 +135,10 @@ class CorpBookmarkServiceTest {
     void addCorpBookmark_duplicate() {
         //given
         given(userEntityRepository.findByUserEmail("test@test.com")).willReturn(Optional.of(testUser));
-        given(userCorpBookmarkRepository.existsByUser_IdAndCorpId(1L, "CORP001")).willReturn(true);
+        given(userCorpBookmarkRepository.existsByUser_IdAndCorpCode(1L, "CORP001")).willReturn(true);
 
         BookmarkCreateRequest request = new BookmarkCreateRequest();
-        request.setCorpId("CORP001");
+        request.setCorpCode("CORP001");
         request.setCorpName("테스트 회사1");
 
         //when, then
@@ -152,13 +154,13 @@ class CorpBookmarkServiceTest {
     void deleteBookmark_success() {
         //given
         given(userEntityRepository.findByUserEmail("test@test.com")).willReturn(Optional.of(testUser));
-        given(userCorpBookmarkRepository.deleteByUser_IdAndCorpId(1L, "CORP001")).willReturn(1L);
+        given(userCorpBookmarkRepository.deleteByUser_IdAndCorpCode(1L, "CORP001")).willReturn(1L);
 
         //when
         corpBookmarkService.deleteBookmark("CORP001");
 
         //then (해당 메서드가 제대로 호출되었는지 검증)
-        then(userCorpBookmarkRepository).should().deleteByUser_IdAndCorpId(1L, "CORP001");
+        then(userCorpBookmarkRepository).should().deleteByUser_IdAndCorpCode(1L, "CORP001");
     }
 
     @Test
@@ -166,7 +168,7 @@ class CorpBookmarkServiceTest {
     void deleteBookmark_notFound() {
         //given
         given(userEntityRepository.findByUserEmail("test@test.com")).willReturn(Optional.of(testUser));
-        given(userCorpBookmarkRepository.deleteByUser_IdAndCorpId(1L, "CORP999")).willReturn(0L);
+        given(userCorpBookmarkRepository.deleteByUser_IdAndCorpCode(1L, "CORP999")).willReturn(0L);
 
         //when, then
         assertThatThrownBy(() -> corpBookmarkService.deleteBookmark("CORP999"))

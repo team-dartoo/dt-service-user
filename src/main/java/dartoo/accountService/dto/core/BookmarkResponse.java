@@ -8,7 +8,7 @@ import java.time.Instant;
 @Builder
 @Data
 public class BookmarkResponse {
-    private String corpId;
+    private String corpCode;
     private String corpName;
     private Instant createdAt;
 }

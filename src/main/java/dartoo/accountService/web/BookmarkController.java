@@ -2,6 +2,7 @@ package dartoo.accountService.web;
 
 import dartoo.accountService.dto.core.BookmarkCreateRequest;
 import dartoo.accountService.dto.core.BookmarkListResponse;
+import dartoo.accountService.dto.core.BookmarkReorderRequest;
 import dartoo.accountService.dto.core.BookmarkResponse;
 import dartoo.accountService.service.CorpBookmarkService;
 import jakarta.validation.Valid;
@@ -25,9 +26,15 @@ public class BookmarkController {
         return ResponseEntity.ok(bookmarkService.addCorpBookmark(request));
     }
 
-    @DeleteMapping("/{corpId}")
-    public ResponseEntity<Void> deleteBookmark(@PathVariable String corpId){
-        bookmarkService.deleteBookmark(corpId);
+    @DeleteMapping("/{corpCode}")
+    public ResponseEntity<Void> deleteBookmark(@PathVariable String corpCode){
+        bookmarkService.deleteBookmark(corpCode);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/reorder")
+    public ResponseEntity<Void> reorderBookmarks(@Valid @RequestBody BookmarkReorderRequest request){
+        bookmarkService.reorderBookmarks(request);
+        return ResponseEntity.ok().build();
     }
 }

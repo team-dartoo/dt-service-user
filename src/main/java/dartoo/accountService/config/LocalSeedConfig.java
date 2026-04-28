@@ -126,14 +126,16 @@ public class LocalSeedConfig {
     private void setBookmark(UserEntity user) {
         UserCorpBookmark bookmark = UserCorpBookmark.builder()
                 .user(user)
-                .corpId("35161115")
+                .corpCode("00126380")
                 .corpName("삼성전자")
+                .displayOrder(0)
                 .createdAt(Instant.now().minusSeconds(3600*24*3))
                 .build();
         UserCorpBookmark bookmark2 = UserCorpBookmark.builder()
                 .user(user)
-                .corpId("64889445")
+                .corpCode("00164744")
                 .corpName("SK하이닉스")
+                .displayOrder(1)
                 .createdAt(Instant.now().minusSeconds(3600*24*2))
                 .build();
         userCorpBookmarkRepository.save(bookmark);
