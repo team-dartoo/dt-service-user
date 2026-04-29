@@ -1,9 +1,7 @@
 package dartoo.accountService.repository.core;
 
 import dartoo.accountService.domain.UserCorpBookmark;
-import jakarta.validation.constraints.NotBlank;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -24,8 +22,4 @@ public interface UserCorpBookmarkRepository extends JpaRepository<UserCorpBookma
 
     @Query("SELECT COALESCE(MAX(b.displayOrder), -1) FROM UserCorpBookmark b WHERE b.user.id = :userId")
     Integer findMaxDisplayOrderByUser_Id(@Param("userId") Long userId);
-
-    @Modifying
-    @Query("UPDATE UserCorpBookmark b SET b.displayOrder = :order WHERE b.user.id = :userId AND b.corpCode = :corpCode")
-    int updateDisplayOrder(@Param("userId") Long userId, @Param("corpCode") String corpCode, @Param("order") int order);
 }

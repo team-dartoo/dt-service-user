@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static dartoo.accountService.error.ErrorCode.*;
 
@@ -54,7 +56,7 @@ public class CorpBookmarkService {
         List<UserCorpBookmark> unordered = userCorpBookmarkRepository
                 .findAllByUser_IdAndDisplayOrderIsNullOrderByCreatedAtDescIdAsc(userId);
         for (int i = 0; i < unordered.size(); i++) {
-            userCorpBookmarkRepository.updateDisplayOrder(userId, unordered.get(i).getCorpCode(), i);
+            unordered.get(i).updateDisplayOrder(i);
         }
 
         log.info("Backfilled displayOrder for {} bookmarks of user {}", unordered.size(), userId);
@@ -135,17 +137,21 @@ public class CorpBookmarkService {
                 .findAllByUser_IdOrderByDisplayOrderAscIdAsc(userId);
 
         Set<String> requested = new HashSet<>(request.getCorpCodes());
+        Map<String, UserCorpBookmark> byCorpCode = bookmarks.stream()
+                .collect(Collectors.toMap(UserCorpBookmark::getCorpCode, b -> b));
 
         for (int i = 0; i < request.getCorpCodes().size(); i++) {
-            String corpCode = request.getCorpCodes().get(i);
-            userCorpBookmarkRepository.updateDisplayOrder(userId, corpCode, i);
+            UserCorpBookmark bookmark = byCorpCode.get(request.getCorpCodes().get(i));
+            if (bookmark != null) {
+                bookmark.updateDisplayOrder(i);
+            }
         }
 
         int offset = request.getCorpCodes().size();
         int extra = 0;
         for (UserCorpBookmark b : bookmarks) {
             if (!requested.contains(b.getCorpCode())) {
-                userCorpBookmarkRepository.updateDisplayOrder(userId, b.getCorpCode(), offset + extra);
+                b.updateDisplayOrder(offset + extra);
                 extra++;
             }
         }

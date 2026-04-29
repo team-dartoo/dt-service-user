@@ -19,7 +19,7 @@ import java.time.Instant;
 //중복 북마크 방지용 CONSTRAINT, 빠른 검색용 INDEX
 @Table(name = "user_corp_bookmark",
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_user_bookmark_user_corp", columnNames = {"user_id", "corp_id"})
+                @UniqueConstraint(name = "uk_user_bookmark_user_corp", columnNames = {"user_id", "corp_code"})
         },
         indexes = {
                 @Index(name = "idx_user_bookmark_user_created", columnList = "user_id, created_at DESC"),
@@ -35,7 +35,7 @@ public class UserCorpBookmark {
     @JoinColumn(name="user_id", nullable = false)
     private UserEntity user;
 
-    @Column(name = "corp_id", nullable = false)
+    @Column(name = "corp_code", nullable = false)
     private String corpCode;
 
     private String corpName;
@@ -45,4 +45,8 @@ public class UserCorpBookmark {
 
     @CreatedDate
     private Instant createdAt;
+
+    public void updateDisplayOrder(int order) {
+        this.displayOrder = order;
+    }
 }
