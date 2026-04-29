@@ -5,6 +5,7 @@ import dartoo.accountService.domain.UserEntity;
 import dartoo.accountService.domain.enums.Role;
 import dartoo.accountService.dto.core.BookmarkCreateRequest;
 import dartoo.accountService.dto.core.BookmarkListResponse;
+import dartoo.accountService.dto.core.BookmarkReorderRequest;
 import dartoo.accountService.dto.core.BookmarkResponse;
 import dartoo.accountService.error.ApiException;
 import dartoo.accountService.repository.UserEntityRepository;
@@ -18,7 +19,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static dartoo.accountService.error.ErrorCode.*;
 
@@ -43,16 +48,35 @@ public class CorpBookmarkService {
                 .orElseThrow(()->new ApiException(USER_NOT_FOUND));
     }
 
-    //사용자의 전체 북마크 목록을 리턴하는 메서드
+    //기존 행에 displayOrder가 없으면(=null) createdAt DESC, id ASC 순으로 채워넣는 backfill
+    private List<UserCorpBookmark> backfillDisplayOrder(Long userId, List<UserCorpBookmark> bookmarks) {
+        boolean needsBackfill = bookmarks.stream().anyMatch(b -> b.getDisplayOrder() == null);
+        if (!needsBackfill) return bookmarks;
+
+        List<UserCorpBookmark> unordered = userCorpBookmarkRepository
+                .findAllByUser_IdAndDisplayOrderIsNullOrderByCreatedAtDescIdAsc(userId);
+        for (int i = 0; i < unordered.size(); i++) {
+            unordered.get(i).updateDisplayOrder(i);
+        }
+
+        log.info("Backfilled displayOrder for {} bookmarks of user {}", unordered.size(), userId);
+        return userCorpBookmarkRepository.findAllByUser_IdOrderByDisplayOrderAscIdAsc(userId);
+    }
+
+    //사용자의 전체 북마크 목록을 리턴하는 메서드 (displayOrder ASC)
     public BookmarkListResponse listCorpBookmark(){
         UserEntity user = getCurrentUser();
 
-        List<UserCorpBookmark> bookmarks = userCorpBookmarkRepository.findAllByUser_IdOrderByCreatedAtDesc(user.getId());
+        List<UserCorpBookmark> bookmarks = backfillDisplayOrder(
+                user.getId(),
+                userCorpBookmarkRepository.findAllByUser_IdOrderByDisplayOrderAscIdAsc(user.getId())
+        );
+
         List<BookmarkResponse> corpList = new ArrayList<>();
 
         for(UserCorpBookmark bookmark : bookmarks) {
             BookmarkResponse response = BookmarkResponse.builder()
-                    .corpId(bookmark.getCorpId())
+                    .corpCode(bookmark.getCorpCode())
                     .corpName(bookmark.getCorpName())
                     .createdAt(bookmark.getCreatedAt())
                     .build();
@@ -69,20 +93,24 @@ public class CorpBookmarkService {
     public BookmarkResponse addCorpBookmark(BookmarkCreateRequest request){
         UserEntity user = getCurrentUser();
 
-        if(userCorpBookmarkRepository.existsByUser_IdAndCorpId(user.getId(),request.getCorpId())){
+        if(userCorpBookmarkRepository.existsByUser_IdAndCorpCode(user.getId(),request.getCorpCode())){
             throw new ApiException(DUPLICATE_BOOKMARK);
         }
+
+        Integer maxOrder = userCorpBookmarkRepository.findMaxDisplayOrderByUser_Id(user.getId());
+        int nextOrder = (maxOrder != null ? maxOrder : -1) + 1;
 
         UserCorpBookmark saved = userCorpBookmarkRepository.save(
                 UserCorpBookmark.builder()
                         .user(user)
-                        .corpId(request.getCorpId())
+                        .corpCode(request.getCorpCode())
                         .corpName(request.getCorpName())
+                        .displayOrder(nextOrder)
                         .build()
         );
 
         return BookmarkResponse.builder()
-                .corpId(saved.getCorpId())
+                .corpCode(saved.getCorpCode())
                 .corpName(saved.getCorpName())
                 .createdAt(saved.getCreatedAt())
                 .build();
@@ -90,14 +118,45 @@ public class CorpBookmarkService {
 
     //사용자의 북마크를 삭제
     //관리자가 삭제하게 만들어야 할 경우, userId를 인수로 받든지 해야할 것 같다.
-    public void deleteBookmark(String corpId){
+    public void deleteBookmark(String corpCode){
         UserEntity user = getCurrentUser();
 
-        long deleted = userCorpBookmarkRepository.deleteByUser_IdAndCorpId(user.getId(),corpId);
+        long deleted = userCorpBookmarkRepository.deleteByUser_IdAndCorpCode(user.getId(),corpCode);
         if(deleted==0){
             throw new ApiException(BOOKMARK_NOT_FOUND);
         }
-        log.info("User {} deleted bookmark id #{} - {}.",getSessionEmail(),deleted,corpId);
+        log.info("User {} deleted bookmark id #{} - {}.",getSessionEmail(),deleted,corpCode);
+    }
+
+    //전체 순서를 한 번에 업데이트 (PUT /reorder)
+    public void reorderBookmarks(BookmarkReorderRequest request){
+        UserEntity user = getCurrentUser();
+        Long userId = user.getId();
+
+        List<UserCorpBookmark> bookmarks = userCorpBookmarkRepository
+                .findAllByUser_IdOrderByDisplayOrderAscIdAsc(userId);
+
+        Set<String> requested = new HashSet<>(request.getCorpCodes());
+        Map<String, UserCorpBookmark> byCorpCode = bookmarks.stream()
+                .collect(Collectors.toMap(UserCorpBookmark::getCorpCode, b -> b));
+
+        for (int i = 0; i < request.getCorpCodes().size(); i++) {
+            UserCorpBookmark bookmark = byCorpCode.get(request.getCorpCodes().get(i));
+            if (bookmark != null) {
+                bookmark.updateDisplayOrder(i);
+            }
+        }
+
+        int offset = request.getCorpCodes().size();
+        int extra = 0;
+        for (UserCorpBookmark b : bookmarks) {
+            if (!requested.contains(b.getCorpCode())) {
+                b.updateDisplayOrder(offset + extra);
+                extra++;
+            }
+        }
+
+        log.info("User {} reordered {} bookmarks.", getSessionEmail(), request.getCorpCodes().size());
     }
 
 //    public void adminDeleteBookmark(Long userId, String corpId) {
