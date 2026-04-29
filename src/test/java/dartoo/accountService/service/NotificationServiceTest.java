@@ -350,6 +350,41 @@ public class NotificationServiceTest {
     }
 
     @Test
+    @DisplayName("bulkCreateInternal - 모든 userId가 유효하지 않으면 findAllById/saveAll 미호출 및 전체 skip")
+    void bulkCreateInternal_allInvalidUserIds() {
+        InternalNotificationCreateRequest r = new InternalNotificationCreateRequest();
+        r.setUserId("notANumber");
+        r.setTitle("무효");
+        r.setEventType("disclosure.created");
+
+        BulkNotificationResponse result = notificationService.bulkCreateInternal(List.of(r));
+
+        assertThat(result.getTotal()).isEqualTo(1);
+        assertThat(result.getCreated()).isEqualTo(0);
+        assertThat(result.getSkipped()).isEqualTo(1);
+        then(userEntityRepository).should(never()).findAllById(any());
+        then(userNotificationRepository).should(never()).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("bulkCreateInternal - 모든 eventType이 unknown이면 saveAll 미호출")
+    void bulkCreateInternal_allUnknownEventTypes() {
+        InternalNotificationCreateRequest r = new InternalNotificationCreateRequest();
+        r.setUserId("1");
+        r.setTitle("알수없음");
+        r.setEventType("unknown.event");
+
+        given(userEntityRepository.findAllById(any())).willReturn(List.of(testUser));
+
+        BulkNotificationResponse result = notificationService.bulkCreateInternal(List.of(r));
+
+        assertThat(result.getTotal()).isEqualTo(1);
+        assertThat(result.getCreated()).isEqualTo(0);
+        assertThat(result.getSkipped()).isEqualTo(1);
+        then(userNotificationRepository).should(never()).saveAll(any());
+    }
+
+    @Test
     @DisplayName("bulkCreateInternal 매핑 정상 - DISCLOSURE/AI_SUMMARY/unknown/invalid userId 혼합")
     void bulkCreateInternal_매핑_정상() {
         // given

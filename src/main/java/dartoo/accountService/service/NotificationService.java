@@ -45,34 +45,37 @@ public class NotificationService {
         int total = requests.size();
         int skipped = 0;
 
-        // userId 파싱 — 유효한 Long 값만 수집 (중복 userId 허용)
-        Set<Long> userIds = new HashSet<>();
+        // userId 파싱 — 한 번만 수행 (null = 파싱 실패)
+        List<Long> parsedUserIds = new ArrayList<>(total);
+        Set<Long> uniqueUserIds = new HashSet<>();
         for (InternalNotificationCreateRequest req : requests) {
             try {
-                userIds.add(Long.parseLong(req.getUserId()));
+                Long id = Long.parseLong(req.getUserId());
+                parsedUserIds.add(id);
+                uniqueUserIds.add(id);
             } catch (NumberFormatException e) {
                 log.warn("Skip notification: invalid userId format '{}'", req.getUserId());
+                parsedUserIds.add(null);
             }
         }
-        if (userIds.isEmpty()) {
+        if (uniqueUserIds.isEmpty()) {
             return BulkNotificationResponse.builder()
                     .total(total).created(0).skipped(total).build();
         }
 
         // 배치 조회로 N+1 해소 (N회 findById → 1회 findAllById)
-        Map<Long, UserEntity> userMap = userEntityRepository.findAllById(userIds)
+        Map<Long, UserEntity> userMap = userEntityRepository.findAllById(uniqueUserIds)
                 .stream().collect(Collectors.toMap(UserEntity::getId, u -> u));
 
         // 원본 리스트를 순회하며 알림 생성 (동일 userId 다중 알림 지원)
         List<UserNotification> toSave = new ArrayList<>();
-        for (InternalNotificationCreateRequest req : requests) {
-            Long userId;
-            try {
-                userId = Long.parseLong(req.getUserId());
-            } catch (NumberFormatException e) {
+        for (int i = 0; i < requests.size(); i++) {
+            Long userId = parsedUserIds.get(i);
+            if (userId == null) {
                 skipped++;
-                continue; // 이미 위에서 경고 로그 출력
+                continue;
             }
+            InternalNotificationCreateRequest req = requests.get(i);
             UserEntity user = userMap.get(userId);
             if (user == null) {
                 log.warn("Skip notification: user not found for id={}", userId);
@@ -103,6 +106,9 @@ public class NotificationService {
         }
         if (!toSave.isEmpty()) {
             userNotificationRepository.saveAll(toSave);
+        }
+        if (skipped > 0) {
+            log.info("bulkCreateInternal completed: total={}, created={}, skipped={}", total, toSave.size(), skipped);
         }
         return BulkNotificationResponse.builder()
                 .total(total).created(toSave.size()).skipped(skipped).build();
