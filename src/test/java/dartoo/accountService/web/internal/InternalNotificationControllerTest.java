@@ -15,6 +15,12 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -24,13 +30,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.reset;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(InternalNotificationController.class)
-@Import({InternalNotificationControllerTest.MockConfig.class, GlobalExceptionAdvice.class, ServiceApiKeyFilter.class})
+@Import({InternalNotificationControllerTest.MockConfig.class,
+        InternalNotificationControllerTest.InternalApiSecurityConfig.class,
+        GlobalExceptionAdvice.class, ServiceApiKeyFilter.class})
 @TestPropertySource(properties = "app.security.worker-api-key=test-worker-key")
 class InternalNotificationControllerTest {
 
@@ -44,6 +53,21 @@ class InternalNotificationControllerTest {
     @TestConfiguration
     static class MockConfig {
         @Bean NotificationService notificationService() { return mock(NotificationService.class); }
+    }
+
+    @TestConfiguration
+    static class InternalApiSecurityConfig {
+        @Bean
+        @Order(1)
+        SecurityFilterChain internalApiFilterChain(HttpSecurity http, ServiceApiKeyFilter serviceApiKeyFilter) throws Exception {
+            http
+                .securityMatcher("/internal/api/**")
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(reg -> reg.anyRequest().permitAll())
+                .addFilterBefore(serviceApiKeyFilter, UsernamePasswordAuthenticationFilter.class);
+            return http.build();
+        }
     }
 
     @BeforeEach
@@ -83,6 +107,20 @@ class InternalNotificationControllerTest {
                         .contentType(APPLICATION_JSON_VALUE)
                         .content(objectMapper.writeValueAsString(sampleRequest("disclosure.created"))))
                 .andExpect(status().isUnauthorized());
+
+        verify(notificationService, never()).bulkCreateInternal(any());
+    }
+
+    @Test
+    @DisplayName("POST /internal/api/notifications/bulk - 잘못된 API 키 → 401")
+    void bulkCreateWrongKey() throws Exception {
+        mockMvc.perform(post("/internal/api/notifications/bulk")
+                        .header("X-Service-API-Key", "wrong-key-value")
+                        .contentType(APPLICATION_JSON_VALUE)
+                        .content(objectMapper.writeValueAsString(sampleRequest("disclosure.created"))))
+                .andExpect(status().isUnauthorized());
+
+        verify(notificationService, never()).bulkCreateInternal(any());
     }
 
     @Test
