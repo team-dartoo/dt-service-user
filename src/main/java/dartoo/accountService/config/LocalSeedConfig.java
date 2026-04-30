@@ -3,9 +3,7 @@ package dartoo.accountService.config;
 import dartoo.accountService.domain.*;
 import dartoo.accountService.domain.enums.*;
 import dartoo.accountService.dto.core.enums.PlanDuration;
-import dartoo.accountService.repository.UserAgreedRepository;
 import dartoo.accountService.repository.UserEntityRepository;
-import dartoo.accountService.repository.UserPreferenceRepository;
 import dartoo.accountService.repository.core.UserCorpBookmarkRepository;
 import dartoo.accountService.repository.core.UserNotificationRepository;
 import dartoo.accountService.repository.core.UserPlanRepository;
@@ -41,8 +39,7 @@ public class LocalSeedConfig {
 
     //repository 목록
     private final UserEntityRepository userEntityRepository;
-    private final UserPreferenceRepository userPreferenceRepository;
-    private final UserAgreedRepository userAgreedRepository;
+
     private final UserPlanRepository userPlanRepository;
     private final UserCorpBookmarkRepository userCorpBookmarkRepository;
     private final UserNotificationRepository userNotificationRepository;
@@ -115,7 +112,8 @@ public class LocalSeedConfig {
         UserNotification notification = UserNotification.builder()
                 .user(user)
                 .title("멤버십 결제 만료")
-                .content("35일 전에 결제한 멤버십 결제가 만료되었습니다.")
+                .corpName("(시드)")
+                .eventType(NotificationType.DISCLOSURE_UPDATE)
                 .createdAt(Instant.now().minusSeconds(3600*24*5))
                 .status(NotificationStatus.UNREAD)
                 .readAt(null)
@@ -208,7 +206,6 @@ public class LocalSeedConfig {
                 .marketingAgreed(false)
                 .build();
         user.attachAgreed(agreed);
-        userAgreedRepository.save(agreed);
     }
 
     private void setPreference(UserEntity user) {
@@ -228,7 +225,6 @@ public class LocalSeedConfig {
                     .build();
         }
         user.attachPreference(pref);
-        userPreferenceRepository.save(pref);
     }
 
 }
