@@ -394,7 +394,33 @@ public class UserPlanService {
                 log.info("[Webhook] EXPIRE 완료: userId={}, transactionId={}, expireAt={}",
                         user.getId(), transactionId, webhookExpireAt);
             }
+            case AUTO_RENEW -> {
+                if (webhookExpireAt == null){
+                    log.error("[Webhook] AUTO_RENEW 이벤트에 expiration_at_ms 없음: userId={}", user.getId());
+                    throw new ApiException(INVALID_UPDATE_PLAN_ACTION);
+                }
+                UserPlan currentPlan = userPlanRepository
+                        .findTopByUser_IdAndStartAtLessThanEqualAndExpireAtAfterAndStatusInOrderByExpireAtDesc(
+                                user.getId(),now,now,List.of(PlanStatus.ACTIVE,PlanStatus.CANCELLED)
+                        ).orElseThrow(()-> new ApiException(INVALID_UPDATE_PLAN_ACTION));
 
+                Instant newStartAt = currentPlan.getExpireAt();
+
+                userPlanRepository.save(UserPlan.builder()
+                        .user(user)
+                        .plan(PlanType.PREMIUM)
+                        .duration(duration)
+                        .status(PlanStatus.ACTIVE)
+                        .startAt(newStartAt)
+                        .expireAt(webhookExpireAt)
+                        .transactionId(transactionId)
+                        .store(store)
+                        .build());
+
+                user.updatePlan(PlanType.PREMIUM, PlanStatus.ACTIVE, webhookExpireAt);
+                log.info("[Webhook] AUTO_RENEW 완료: userId={}, newStartAt={}, expireAt={}",
+                        user.getId(), newStartAt, webhookExpireAt);
+            }
         }
     }
 

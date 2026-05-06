@@ -38,7 +38,7 @@ public class RevenueCatWebhookService {
         //형식에 맞는지 체크
         validateSecret(authHeader);
         RevenueCatWebhookPayload.Event event = payload.getEvent();
-        log.info("[Webhook] 이벤트 수신 : type={}, app_user_id={}", event.getType(), event.getApp_user_id());
+        log.info("[Webhook] 이벤트 수신 : type={}, app_user_id={}, cancel_reason={}", event.getType(), event.getApp_user_id(), event.getCancel_reason());
 
         if (!isSupportedEventType(event.getType())) {
             log.info("[Webhook] 이벤트 무시 : type={}", event.getType());
@@ -80,7 +80,7 @@ public class RevenueCatWebhookService {
                     user.getId(), event.getTransaction_id(), e.getMessage());
 
             // 구매/연장 처리 실패일 때만 환불 시도
-            if (action == PlanAction.SUBSCRIBE || action == PlanAction.RENEW) {
+            if (action == PlanAction.SUBSCRIBE || action == PlanAction.RENEW || action == PlanAction.AUTO_RENEW) {
                 refundHandler(event.getApp_user_id(), event.getTransaction_id(), event.getStore());
             }
 
@@ -117,7 +117,8 @@ public class RevenueCatWebhookService {
             "INITIAL_PURCHASE",
             "NON_RENEWING_PURCHASE",
             "CANCELLATION",
-            "EXPIRATION"
+            "EXPIRATION",
+            "RENEWAL"
     );
 
     //우리가 지원하는 결제 Action인지 확인
@@ -137,6 +138,9 @@ public class RevenueCatWebhookService {
         if ("EXPIRATION".equals(eventType)) {
             return PlanAction.EXPIRE;
         }
+        if("RENEWAL".equals(eventType)){
+            return PlanAction.AUTO_RENEW;
+        }
 
         // INITIAL_PURCHASE, NON_RENEWING_PURCHASE
         // event.type만으로 신규/연장 구분 불가 → 유저 상태로 판단
@@ -145,15 +149,17 @@ public class RevenueCatWebhookService {
         return hasActivePlan ? PlanAction.RENEW : PlanAction.SUBSCRIBE;
     }
 
-
+    //product_id는 RevenueCat 대시보드 → Products → Identifier와 정확히 일치해야 한다.
     private static final Set<String> MONTHLY_PRODUCT_IDS = Set.of(
-            "dartoo_premium_monthly"
+            "dartoo_premium_monthly",
             // 자동갱신 전환 시: "dartoo_premium_monthly_auto" 추가
+            "dartoo_premium_monthly_auto"
     );
 
     private static final Set<String> YEARLY_PRODUCT_IDS = Set.of(
-            "dartoo_premium_yearly"
+            "dartoo_premium_yearly",
             // 자동갱신 전환 시: "dartoo_premium_yearly_auto" 추가
+            "dartoo_premium_yearly_auto"
     );
 
     /**
@@ -220,4 +226,20 @@ public class RevenueCatWebhookService {
  *   updatePlan() CANCEL이 처리. (이 클래스와 무관)
  *   - Apple 결제: 앱 내 환불 불가 → 즉시 APPLE_REFUND_REQUIRED 예외 반환
  *   - Google 결제: RevenueCat 환불 API 호출 → 성공 시 REFUNDED, 실패 시 오류 응답
+ *
+ * [비자동갱신 vs 자동갱신 처리 비교]
+ *   비자동갱신 (NON_RENEWING_PURCHASE):
+ *     - SUBSCRIBE/RENEW: parsePlanAction()에서 planExpireAt.isAfter(now)로 구분
+ *     - RENEW: validateRenewWindowAndUniqueness() + calculateNewExpireAt() 적용
+ *     - CANCEL: 사용자가 앱 내 취소 → updatePlan() 처리
+ *              Apple 환불 승인 → CANCELLATION Webhook → DB 상태만 업데이트
+ *
+ *   자동갱신 (RENEWAL / CANCELLATION with cancel_reason):
+ *     - AUTO_RENEW: RENEWAL 이벤트 → 유저 상태 확인 없이 AUTO_RENEW로 바로 매핑
+ *                  validateRenewWindowAndUniqueness() 없음 (갱신 시점은 RevenueCat 결정)
+ *                  expiration_at_ms 그대로 사용 (calculateNewExpireAt() 없음)
+ *     - CANCEL: CANCELLATION (cancel_reason=UNSUBSCRIBE) → 기존 CANCEL 로직 그대로 적용
+ *              현재 플랜 → CANCELLED (만료일까지 사용), 미래 플랜 → REFUNDED
+ *              cancel_reason=CUSTOMER_SUPPORT도 동일하게 DB 상태만 업데이트
+ *              (환불은 RevenueCat/스토어에서 이미 완료)
  */

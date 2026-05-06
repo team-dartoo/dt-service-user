@@ -84,5 +84,14 @@ public class RevenueCatWebhookPayload {
          *   PLAY_STORE → RevenueCat 환불 API 즉시 호출
          */
         private String store;
+        /**
+         * 자동갱신 구독의 취소 사유.
+         * CANCELLATION 이벤트에서만 존재. 비자동갱신에서는 null.
+         *
+         * UNSUBSCRIBE      - 사용자가 App Store/Play Store에서 자동갱신 해제
+         *                    현재 기간 만료까지 서비스 사용 가능
+         * CUSTOMER_SUPPORT - 고객지원팀 환불 처리 (환불은 RevenueCat/스토어에서 이미 완료)
+         */
+        private String cancel_reason;
     }
 }
