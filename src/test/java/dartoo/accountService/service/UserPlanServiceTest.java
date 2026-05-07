@@ -633,6 +633,97 @@ class UserPlanServiceTest {
         assertThat(testUser.getPlan()).isEqualTo(PlanType.FREE);
     }
 
+    @Test
+    @DisplayName("updatePlanByWebhook - AUTO_RENEW 성공 - startAt이 currentPlan.expireAt이다 (구독 연속성)")
+    void updatePlanByWebhook_autoRenew_success() {
+        //given
+        Instant currentExpireAt = now.plus(3, ChronoUnit.DAYS);
+        Instant webhookExpireAt = currentExpireAt.plus(30, ChronoUnit.DAYS);
+        testUser.updatePlan(PlanType.PREMIUM, PlanStatus.ACTIVE, currentExpireAt);
+
+        UserPlan currentPlan = buildActivePlan(PlanDuration.MONTHLY,
+                now.minus(27, ChronoUnit.DAYS), currentExpireAt, "tx_001", "PLAY_STORE");
+
+        given(userPlanRepository.findTopByUser_IdAndStartAtLessThanEqualAndExpireAtAfterAndStatusInOrderByExpireAtDesc(
+                eq(1L), any(), any(), eq(List.of(PlanStatus.ACTIVE, PlanStatus.CANCELLED))))
+                .willReturn(Optional.of(currentPlan));
+
+        //when
+        userPlanService.updatePlanByWebhook(testUser, PlanAction.AUTO_RENEW, PlanDuration.MONTHLY,
+                webhookExpireAt, "tx_auto_001", "PLAY_STORE");
+
+        //then
+        then(userPlanRepository).should().save(argThat(plan ->
+                // startAt = currentPlan.expireAt (연속성 보장, now 아님)
+                Math.abs(plan.getStartAt().toEpochMilli() - currentExpireAt.toEpochMilli()) < 1000
+                        // expireAt = RevenueCat이 보내준 값 그대로 (서버 재계산 없음)
+                        && Math.abs(plan.getExpireAt().toEpochMilli() - webhookExpireAt.toEpochMilli()) < 1000
+                        && plan.getStatus() == PlanStatus.ACTIVE
+                        && plan.getDuration() == PlanDuration.MONTHLY
+        ));
+        assertThat(testUser.getPlanStatus()).isEqualTo(PlanStatus.ACTIVE);
+    }
+
+    @Test
+    @DisplayName("updatePlanByWebhook - AUTO_RENEW 성공 - 만료 30일 전에도 갱신 가능 (14일 창 제한 없음)")
+    void updatePlanByWebhook_autoRenew_noRenewWindowRestriction() {
+        //given
+        // RENEW였다면 14일 창 밖이라 RENEW_NOT_ALLOWED_YET 예외가 발생해야 하는 케이스
+        Instant currentExpireAt = now.plus(30, ChronoUnit.DAYS);
+        Instant webhookExpireAt = currentExpireAt.plus(30, ChronoUnit.DAYS);
+        testUser.updatePlan(PlanType.PREMIUM, PlanStatus.ACTIVE, currentExpireAt);
+
+        UserPlan currentPlan = buildActivePlan(PlanDuration.MONTHLY,
+                now.minus(1, ChronoUnit.DAYS), currentExpireAt, "tx_001", "PLAY_STORE");
+
+        given(userPlanRepository.findTopByUser_IdAndStartAtLessThanEqualAndExpireAtAfterAndStatusInOrderByExpireAtDesc(
+                eq(1L), any(), any(), eq(List.of(PlanStatus.ACTIVE, PlanStatus.CANCELLED))))
+                .willReturn(Optional.of(currentPlan));
+
+        //when & then - 예외 없이 정상 처리
+        userPlanService.updatePlanByWebhook(testUser, PlanAction.AUTO_RENEW, PlanDuration.MONTHLY,
+                webhookExpireAt, "tx_auto_001", "PLAY_STORE");
+
+        then(userPlanRepository).should().save(any(UserPlan.class));
+    }
+
+    @Test
+    @DisplayName("updatePlanByWebhook - AUTO_RENEW 실패 - webhookExpireAt이 null이면 예외")
+    void updatePlanByWebhook_autoRenew_nullWebhookExpireAt_throwsException() {
+        //given
+        testUser.updatePlan(PlanType.PREMIUM, PlanStatus.ACTIVE, now.plus(3, ChronoUnit.DAYS));
+
+        //when & then
+        assertThatThrownBy(() ->
+                userPlanService.updatePlanByWebhook(testUser, PlanAction.AUTO_RENEW, PlanDuration.MONTHLY,
+                        null, "tx_auto_001", "PLAY_STORE"))
+                .isInstanceOf(ApiException.class)
+                .hasFieldOrPropertyWithValue("errorCode", INVALID_UPDATE_PLAN_ACTION);
+
+        then(userPlanRepository).should(never()).save(any());
+    }
+
+    @Test
+    @DisplayName("updatePlanByWebhook - AUTO_RENEW 실패 - 현재 활성 플랜 없으면 예외")
+    void updatePlanByWebhook_autoRenew_noCurrentPlan_throwsException() {
+        //given
+        testUser.updatePlan(PlanType.PREMIUM, PlanStatus.ACTIVE, now.plus(3, ChronoUnit.DAYS));
+        Instant webhookExpireAt = now.plus(33, ChronoUnit.DAYS);
+
+        given(userPlanRepository.findTopByUser_IdAndStartAtLessThanEqualAndExpireAtAfterAndStatusInOrderByExpireAtDesc(
+                eq(1L), any(), any(), eq(List.of(PlanStatus.ACTIVE, PlanStatus.CANCELLED))))
+                .willReturn(Optional.empty());
+
+        //when & then
+        assertThatThrownBy(() ->
+                userPlanService.updatePlanByWebhook(testUser, PlanAction.AUTO_RENEW, PlanDuration.MONTHLY,
+                        webhookExpireAt, "tx_auto_001", "PLAY_STORE"))
+                .isInstanceOf(ApiException.class)
+                .hasFieldOrPropertyWithValue("errorCode", INVALID_UPDATE_PLAN_ACTION);
+
+        then(userPlanRepository).should(never()).save(any());
+    }
+
     // ACTIVE 상태의 UserPlan 생성 헬퍼
     private UserPlan buildActivePlan(PlanDuration duration, Instant startAt, Instant expireAt) {
         return UserPlan.builder()

@@ -287,6 +287,127 @@ class RevenueCatWebhookServiceTest {
                 .hasFieldOrPropertyWithValue("errorCode", INVALID_PRODUCT_ID);
     }
 
+    // ========== RENEWAL (AUTO_RENEW) 처리 ==========
+
+    @Test
+    @DisplayName("RENEWAL 이벤트 수신 시 AUTO_RENEW 액션으로 updatePlanByWebhook 호출")
+    void handleWebhook_renewal_autoRenewAction() {
+        //given
+        UserEntity user = buildUser(NOW.plus(3, ChronoUnit.DAYS));
+        Instant webhookExpireAt = NOW.plus(33, ChronoUnit.DAYS);
+
+        given(userEntityRepository.findByUserEmail("user@test.com")).willReturn(Optional.of(user));
+
+        RevenueCatWebhookPayload payload = buildPayload(
+                "RENEWAL", "user@test.com", "dartoo_premium_monthly_auto",
+                webhookExpireAt.toEpochMilli(), "tx_auto_001", "PLAY_STORE");
+
+        //when
+        revenueCatWebhookService.handleWebhook(VALID_SECRET, payload);
+
+        //then
+        then(userPlanService).should().updatePlanByWebhook(
+                eq(user),
+                eq(PlanAction.AUTO_RENEW),
+                eq(PlanDuration.MONTHLY),
+                argThat(expireAt -> Math.abs(expireAt.toEpochMilli() - webhookExpireAt.toEpochMilli()) < 1000),
+                eq("tx_auto_001"),
+                eq("PLAY_STORE")
+        );
+        then(revenueCatRefundClient).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("RENEWAL 처리 실패 시 Google 결제건 자동 환불")
+    void handleWebhook_renewal_failure_googleRefund() {
+        //given
+        UserEntity user = buildUser(NOW.plus(3, ChronoUnit.DAYS));
+
+        given(userEntityRepository.findByUserEmail("user@test.com")).willReturn(Optional.of(user));
+        willThrow(new ApiException(INVALID_UPDATE_PLAN_ACTION))
+                .given(userPlanService)
+                .updatePlanByWebhook(any(), eq(PlanAction.AUTO_RENEW), any(), any(), any(), any());
+
+        RevenueCatWebhookPayload payload = buildPayload(
+                "RENEWAL", "user@test.com", "dartoo_premium_monthly_auto",
+                NOW.plus(33, ChronoUnit.DAYS).toEpochMilli(), "tx_auto_001", "PLAY_STORE");
+
+        //when & then
+        assertThatThrownBy(() -> revenueCatWebhookService.handleWebhook(VALID_SECRET, payload))
+                .isInstanceOf(ApiException.class);
+
+        then(revenueCatRefundClient).should().refund("user@test.com", "tx_auto_001");
+    }
+
+    @Test
+    @DisplayName("RENEWAL 처리 실패 시 Apple 결제건은 환불 API skip")
+    void handleWebhook_renewal_failure_appleSkipRefund() {
+        //given
+        UserEntity user = buildUser(NOW.plus(3, ChronoUnit.DAYS));
+
+        given(userEntityRepository.findByUserEmail("user@test.com")).willReturn(Optional.of(user));
+        willThrow(new ApiException(INVALID_UPDATE_PLAN_ACTION))
+                .given(userPlanService)
+                .updatePlanByWebhook(any(), eq(PlanAction.AUTO_RENEW), any(), any(), any(), any());
+
+        RevenueCatWebhookPayload payload = buildPayload(
+                "RENEWAL", "user@test.com", "dartoo_premium_yearly_auto",
+                NOW.plus(365, ChronoUnit.DAYS).toEpochMilli(), "tx_auto_002", "APP_STORE");
+
+        //when & then
+        assertThatThrownBy(() -> revenueCatWebhookService.handleWebhook(VALID_SECRET, payload))
+                .isInstanceOf(ApiException.class);
+
+        then(revenueCatRefundClient).shouldHaveNoInteractions();
+    }
+
+// ========== 자동갱신 CANCELLATION (cancel_reason) 처리 ==========
+
+    @Test
+    @DisplayName("cancel_reason=UNSUBSCRIBE CANCELLATION → CANCEL 액션으로 처리, 환불 API 없음")
+    void handleWebhook_cancellation_unsubscribe_dbUpdateOnly() {
+        //given
+        UserEntity user = buildUser(NOW.plus(14, ChronoUnit.DAYS));
+
+        given(userEntityRepository.findByUserEmail("user@test.com")).willReturn(Optional.of(user));
+
+        RevenueCatWebhookPayload payload = buildPayload(
+                "CANCELLATION", "user@test.com", null,
+                null, "tx_auto_003", "PLAY_STORE", "UNSUBSCRIBE");
+
+        //when
+        revenueCatWebhookService.handleWebhook(VALID_SECRET, payload);
+
+        //then
+        then(userPlanService).should().updatePlanByWebhook(
+                eq(user), eq(PlanAction.CANCEL), isNull(), isNull(),
+                eq("tx_auto_003"), eq("PLAY_STORE"));
+        then(revenueCatRefundClient).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("cancel_reason=CUSTOMER_SUPPORT CANCELLATION → CANCEL 액션으로 처리, 환불 API 없음")
+    void handleWebhook_cancellation_customerSupport_dbUpdateOnly() {
+        //given
+        // CUSTOMER_SUPPORT = 고객지원 환불 처리. 환불은 RevenueCat/스토어에서 이미 완료.
+        UserEntity user = buildUser(NOW.plus(14, ChronoUnit.DAYS));
+
+        given(userEntityRepository.findByUserEmail("user@test.com")).willReturn(Optional.of(user));
+
+        RevenueCatWebhookPayload payload = buildPayload(
+                "CANCELLATION", "user@test.com", null,
+                null, "tx_auto_004", "APP_STORE", "CUSTOMER_SUPPORT");
+
+        //when
+        revenueCatWebhookService.handleWebhook(VALID_SECRET, payload);
+
+        //then
+        then(userPlanService).should().updatePlanByWebhook(
+                eq(user), eq(PlanAction.CANCEL), isNull(), isNull(),
+                eq("tx_auto_004"), eq("APP_STORE"));
+        then(revenueCatRefundClient).shouldHaveNoInteractions();
+    }
+
     // 헬퍼 메서드들
     private UserEntity buildUser(Instant planExpireAt) {
         UserEntity user = UserEntity.builder()
@@ -318,4 +439,13 @@ class RevenueCatWebhookServiceTest {
         return payload;
     }
 
+    //새로운 필드 추가에 따른 새로운 메서드 오버로드
+    private RevenueCatWebhookPayload buildPayload(String type, String appUserId, String productId,
+                                                  Long expirationAtMs, String transactionId,
+                                                  String store, String cancelReason) {
+        RevenueCatWebhookPayload payload = buildPayload(type, appUserId, productId,
+                expirationAtMs, transactionId, store);
+        ReflectionTestUtils.setField(payload.getEvent(), "cancel_reason", cancelReason);
+        return payload;
+    }
 }
