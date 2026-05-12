@@ -22,4 +22,6 @@ public interface UserCorpBookmarkRepository extends JpaRepository<UserCorpBookma
 
     @Query("SELECT COALESCE(MAX(b.displayOrder), -1) FROM UserCorpBookmark b WHERE b.user.id = :userId")
     Integer findMaxDisplayOrderByUser_Id(@Param("userId") Long userId);
+
+    List<UserCorpBookmark> findAllByCorpCode(String corpCode);
 }
