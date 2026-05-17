@@ -7,6 +7,8 @@ build/
 .env
 .env-legacy
 .env-product
+docs
+
 #application.yml
 
 ### STS ###
