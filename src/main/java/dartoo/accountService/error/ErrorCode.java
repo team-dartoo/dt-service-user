@@ -69,7 +69,10 @@ public enum ErrorCode {
     INVALID_RENEW_DURATION(HttpStatus.BAD_REQUEST, "잘못된 연장 기간입니다"),
     ALREADY_SUBSCRIBED(HttpStatus.CONFLICT,"이미 구독한 사용자는 구독을 갱신해야 합니다."),
     TRIAL_ALREADY_USED(HttpStatus.CONFLICT,"이미 TRIAL을 사용한 사용자입니다."),
-    TRIAL_NOT_ALLOWED_FOR_EXISTING_CUSTOMER(HttpStatus.FORBIDDEN,"이미 유료 요금제 사용 경력이 있는 사용자입니다.");
+    TRIAL_NOT_ALLOWED_FOR_EXISTING_CUSTOMER(HttpStatus.FORBIDDEN,"이미 유료 요금제 사용 경력이 있는 사용자입니다."),
+
+    //외부 서비스 연동 관련
+    EXTERNAL_SERVICE_ERROR(HttpStatus.BAD_GATEWAY, "외부 서비스 연동 중 오류가 발생했습니다.");
     private final HttpStatus status;
     private final String message;
 }
