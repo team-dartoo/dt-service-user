@@ -44,5 +44,5 @@ services:
 
 networks:
   dartoo-network:
-    driver: bridge
+    external: true
     name: dartoo-network

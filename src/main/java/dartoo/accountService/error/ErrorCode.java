@@ -55,6 +55,8 @@ public enum ErrorCode {
 
     //사용자 알림 관련
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 알림입니다."),
+    INVALID_NOTIFICATION_TYPE(HttpStatus.BAD_REQUEST, "유효하지 않은 알림 타입입니다."),
+    INVALID_SERVICE_API_KEY(HttpStatus.UNAUTHORIZED, "유효하지 않은 서비스 API 키입니다."),
 
     //플랜 관련
     INVALID_UPDATE_PLAN_ACTION(HttpStatus.BAD_REQUEST, "잘못된 플랜 업데이트 방식입니다."),

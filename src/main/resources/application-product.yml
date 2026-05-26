@@ -79,6 +79,8 @@ app:
     link-ttl-seconds: ${OAUTH_LINK_TTL_SECONDS:900} # 5분
     link-cookie-name: "oauth-link-token-dartoo"
     issuer: "Dartoo"
+  security:
+    worker-api-key: ${WORKER_API_KEY}
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000} # CORS 허용 URL을 설정
