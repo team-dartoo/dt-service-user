@@ -107,6 +107,12 @@ management:
     db:
       enabled: true
 
+revenuecat:
+  webhook:
+    secret: ${REVENUECAT_WEBHOOK_SECRET}
+  api:
+    key: ${REVENUECAT_API_KEY}
+
 logging:
   level:
     org.springframework.security: ${SECURITY_LOG_LEVEL}

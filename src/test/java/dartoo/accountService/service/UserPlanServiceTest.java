@@ -12,6 +12,7 @@ import dartoo.accountService.dto.core.enums.PlanDuration;
 import dartoo.accountService.error.ApiException;
 import dartoo.accountService.repository.UserEntityRepository;
 import dartoo.accountService.repository.core.UserPlanRepository;
+import dartoo.accountService.service.revenuecat.RevenueCatRefundClient;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -47,6 +48,8 @@ class UserPlanServiceTest {
 
     @InjectMocks
     UserPlanService userPlanService;
+
+    @Mock private RevenueCatRefundClient revenueCatRefundClient;
 
     private UserEntity testUser;
     private final Instant now = Instant.now();
@@ -308,10 +311,10 @@ class UserPlanServiceTest {
     }
 
     @Test
-    @DisplayName("RENEW 성공 - YEARLY 구독 만료 30일 이내 연장")
+    @DisplayName("RENEW 성공 - YEARLY 구독 만료 14일 이내 연장")
     void updatePlan_renew_yearly_success() {
         // 현재 구독이 20일 후 만료 → 30일 이내이므로 연장 가능
-        Instant expireAt = now.plus(20, ChronoUnit.DAYS);
+        Instant expireAt = now.plus(7, ChronoUnit.DAYS);
         given(userEntityRepository.findByUserEmail("test@test.com")).willReturn(Optional.of(testUser));
         testUser.updatePlan(PlanType.PREMIUM, PlanStatus.ACTIVE, expireAt);
 
@@ -376,7 +379,7 @@ class UserPlanServiceTest {
     }
 
     @Test
-    @DisplayName("RENEW 실패 - 갱신 가능 기간 전 (MONTHLY 14일 이전)")
+    @DisplayName("RENEW 실패 - 갱신 가능 기간 전 (14일 이전)")
     void updatePlan_renew_tooEarly_monthly() {
         // 만료까지 20일 남음 → MONTHLY 갱신 가능 기간(14일 이내)에 해당 안 됨
         Instant expireAt = now.plus(20, ChronoUnit.DAYS);
@@ -424,84 +427,301 @@ class UserPlanServiceTest {
                 .hasFieldOrPropertyWithValue("errorCode", INVALID_RENEW_DURATION);
     }
 
-    // ========== updatePlan - CANCEL 테스트 ==========
+    // ========== updatePlan - CANCEL 로직 변경으로 테스트 메서드 변경 ==========
 
     @Test
-    @DisplayName("CANCEL 성공 - ACTIVE 플랜 취소")
-    void updatePlan_cancel_success() {
-        Instant expireAt = now.plus(20, ChronoUnit.DAYS);
+    @DisplayName("CANCEL 성공 - Google Play 현재 플랜만 있는 경우")
+    void updatePlan_cancel_googlePlay_currentPlanOnly() {
+        //given
+        // 현재 진행 중인 플랜 1개만 존재 → 미래 연장분 없으므로 환불 API 호출 없음
+        Instant expireAt = now.plus(14, ChronoUnit.DAYS);
         given(userEntityRepository.findByUserEmail("test@test.com")).willReturn(Optional.of(testUser));
         testUser.updatePlan(PlanType.PREMIUM, PlanStatus.ACTIVE, expireAt);
 
-        UserPlan currentPlan = buildActivePlan(PlanDuration.MONTHLY, now.minus(10, ChronoUnit.DAYS), expireAt);
-        given(userPlanRepository.findTopByUser_IdAndStartAtLessThanEqualAndExpireAtAfterAndStatusInOrderByExpireAtDesc(
-                eq(1L), any(), any(), eq(List.of(PlanStatus.ACTIVE, PlanStatus.CANCELLED))
-        )).willReturn(Optional.of(currentPlan));
+        UserPlan currentPlan = buildActivePlan(PlanDuration.MONTHLY, now.minus(16, ChronoUnit.DAYS),
+                expireAt, "tx_001", "PLAY_STORE");
+        given(userPlanRepository.findAllByUser_IdAndExpireAtAfterAndStatus(
+                eq(1L), any(), eq(PlanStatus.ACTIVE)))
+                .willReturn(List.of(currentPlan));
 
-        given(userPlanRepository.findAllByUser_IdAndStartAtGreaterThanEqualAndStatusOrderByStartAtAsc(
-                eq(1L), any(), eq(PlanStatus.ACTIVE)
-        )).willReturn(List.of());
+        PlanUpdateRequest request = PlanUpdateRequest.builder()
+                .action(PlanAction.CANCEL).build();
 
-        given(tokenService.createAccessToken(any(), any())).willReturn("newAccessToken");
-
-        PlanUpdateRequest request = PlanUpdateRequest.builder().action(PlanAction.CANCEL).build();
-
+        //when
         PlanUpdateResponse response = userPlanService.updatePlan(request);
 
+        //then
+        // 상태 검증
         assertThat(response.getAction()).isEqualTo(PlanAction.CANCEL);
         assertThat(response.getStatus()).isEqualTo(PlanStatus.CANCELLED);
-        assertThat(currentPlan.getStatus()).isEqualTo(PlanStatus.CANCELLED);
+        // 상호작용 검증: 현재 플랜만 있으면 환불 API 호출 없음
+        then(revenueCatRefundClient).shouldHaveNoInteractions();
     }
 
     @Test
-    @DisplayName("CANCEL 성공 - 미래 연장분도 함께 취소됨")
-    void updatePlan_cancel_withFuturePlans() {
-        Instant expireAt = now.plus(20, ChronoUnit.DAYS);
+    @DisplayName("CANCEL 성공 - Google Play 미래 연장분 환불 API 호출 후 REFUNDED")
+    void updatePlan_cancel_googlePlay_withFuturePlan_refundSuccess() {
+        //given
+        // 현재 플랜(startAt < now) + 미래 연장분(startAt > now) 2개 존재
+        // 미래 연장분은 환불 API 호출 후 REFUNDED로 마킹
+        Instant currentExpireAt = now.plus(7, ChronoUnit.DAYS);
+        Instant futureExpireAt = currentExpireAt.plus(30, ChronoUnit.DAYS);
+        given(userEntityRepository.findByUserEmail("test@test.com")).willReturn(Optional.of(testUser));
+        testUser.updatePlan(PlanType.PREMIUM, PlanStatus.ACTIVE, futureExpireAt);
+
+        UserPlan currentPlan = buildActivePlan(PlanDuration.MONTHLY, now.minus(23, ChronoUnit.DAYS),
+                currentExpireAt, "tx_001", "PLAY_STORE");
+        UserPlan futurePlan = buildActivePlan(PlanDuration.MONTHLY, currentExpireAt,
+                futureExpireAt, "tx_002", "PLAY_STORE");
+
+        given(userPlanRepository.findAllByUser_IdAndExpireAtAfterAndStatus(
+                eq(1L), any(), eq(PlanStatus.ACTIVE)))
+                .willReturn(List.of(currentPlan, futurePlan));
+
+        PlanUpdateRequest request = PlanUpdateRequest.builder()
+                .action(PlanAction.CANCEL).build();
+
+        //when
+        PlanUpdateResponse response = userPlanService.updatePlan(request);
+
+        //then
+        // 상태 검증
+        assertThat(response.getAction()).isEqualTo(PlanAction.CANCEL);
+        // 상호작용 검증: 미래 연장분 환불 API 호출
+        then(revenueCatRefundClient).should().refund("test@test.com", "tx_002");
+    }
+
+    @Test
+    @DisplayName("CANCEL 실패 - Apple 결제건 포함 시 APPLE_REFUND_REQUIRED 예외")
+    void updatePlan_cancel_applePlan_throwsAppleRefundRequired() {
+        //given
+        // Apple 결제건은 RevenueCat 환불 API 미지원
+        // → 즉시 예외 반환, 사용자가 Apple에 직접 환불 요청해야 함
+        Instant expireAt = now.plus(14, ChronoUnit.DAYS);
         given(userEntityRepository.findByUserEmail("test@test.com")).willReturn(Optional.of(testUser));
         testUser.updatePlan(PlanType.PREMIUM, PlanStatus.ACTIVE, expireAt);
 
-        UserPlan currentPlan = buildActivePlan(PlanDuration.MONTHLY, now.minus(10, ChronoUnit.DAYS), expireAt);
+        UserPlan applePlan = buildActivePlan(PlanDuration.MONTHLY, now.minus(16, ChronoUnit.DAYS),
+                expireAt, "tx_001", "APP_STORE");
+        given(userPlanRepository.findAllByUser_IdAndExpireAtAfterAndStatus(
+                eq(1L), any(), eq(PlanStatus.ACTIVE)))
+                .willReturn(List.of(applePlan));
 
-        // 미래 연장분 1개 존재
-        UserPlan futurePlan = UserPlan.builder()
-                .id(2L).user(testUser).plan(PlanType.PREMIUM).duration(PlanDuration.MONTHLY)
-                .status(PlanStatus.ACTIVE)
-                .startAt(expireAt)
-                .expireAt(expireAt.plus(30, ChronoUnit.DAYS))
-                .build();
+        PlanUpdateRequest request = PlanUpdateRequest.builder()
+                .action(PlanAction.CANCEL).build();
 
-        given(userPlanRepository.findTopByUser_IdAndStartAtLessThanEqualAndExpireAtAfterAndStatusInOrderByExpireAtDesc(
-                eq(1L), any(), any(), eq(List.of(PlanStatus.ACTIVE, PlanStatus.CANCELLED))
-        )).willReturn(Optional.of(currentPlan));
+        //when & then
+        assertThatThrownBy(() -> userPlanService.updatePlan(request))
+                .isInstanceOf(ApiException.class)
+                .hasFieldOrPropertyWithValue("errorCode", APPLE_REFUND_REQUIRED);
 
-        given(userPlanRepository.findAllByUser_IdAndStartAtGreaterThanEqualAndStatusOrderByStartAtAsc(
-                eq(1L), any(), eq(PlanStatus.ACTIVE)
-        )).willReturn(List.of(futurePlan));
-
-        given(tokenService.createAccessToken(any(), any())).willReturn("newAccessToken");
-
-        PlanUpdateRequest request = PlanUpdateRequest.builder().action(PlanAction.CANCEL).build();
-
-        userPlanService.updatePlan(request);
-
-        // 미래 연장분도 CANCELLED로 변경되어야 함
-        assertThat(futurePlan.getStatus()).isEqualTo(PlanStatus.CANCELLED);
+        // 상태 검증: Apple은 환불 API 호출 없음
+        then(revenueCatRefundClient).shouldHaveNoInteractions();
     }
 
     @Test
-    @DisplayName("CANCEL 실패 - 취소할 플랜이 없음")
-    void updatePlan_cancel_noPlanToCancel() {
+    @DisplayName("CANCEL 실패 - 취소할 플랜 없음")
+    void updatePlan_cancel_noPlan() {
+        //given
         given(userEntityRepository.findByUserEmail("test@test.com")).willReturn(Optional.of(testUser));
+        given(userPlanRepository.findAllByUser_IdAndExpireAtAfterAndStatus(
+                eq(1L), any(), eq(PlanStatus.ACTIVE)))
+                .willReturn(List.of());
 
-        given(userPlanRepository.findTopByUser_IdAndStartAtLessThanEqualAndExpireAtAfterAndStatusInOrderByExpireAtDesc(
-                eq(1L), any(), any(), eq(List.of(PlanStatus.ACTIVE, PlanStatus.CANCELLED))
-        )).willReturn(Optional.empty());
+        PlanUpdateRequest request = PlanUpdateRequest.builder()
+                .action(PlanAction.CANCEL).build();
 
-        PlanUpdateRequest request = PlanUpdateRequest.builder().action(PlanAction.CANCEL).build();
-
+        //when & then
         assertThatThrownBy(() -> userPlanService.updatePlan(request))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("errorCode", PLAN_TO_CANCEL_NOT_FOUND);
+    }
+
+// ========== updatePlanByWebhook ==========
+
+    @Test
+    @DisplayName("updatePlanByWebhook - SUBSCRIBE 성공")
+    void updatePlanByWebhook_subscribe_success() {
+        //given
+        // SecurityContextHolder 없이 user를 직접 주입받는 Webhook 전용 메서드
+        Instant expireAt = now.plus(30, ChronoUnit.DAYS);
+
+        //when
+        userPlanService.updatePlanByWebhook(testUser, PlanAction.SUBSCRIBE, PlanDuration.MONTHLY,
+                expireAt, "tx_001", "PLAY_STORE");
+
+        //then
+        // 상태 검증
+        assertThat(testUser.getPlan()).isEqualTo(PlanType.PREMIUM);
+        assertThat(testUser.getPlanStatus()).isEqualTo(PlanStatus.ACTIVE);
+        // 상호작용 검증
+        then(userPlanRepository).should().save(any(UserPlan.class));
+    }
+
+    @Test
+    @DisplayName("updatePlanByWebhook - RENEW 성공")
+    void updatePlanByWebhook_renew_success() {
+        //given
+        // 만료 7일 이내 → 갱신 가능 기간, 미래 연장분 없음 → RENEW 성공
+        Instant currentExpireAt = now.plus(7, ChronoUnit.DAYS);
+        testUser.updatePlan(PlanType.PREMIUM, PlanStatus.ACTIVE, currentExpireAt);
+
+        UserPlan currentPlan = buildActivePlan(PlanDuration.MONTHLY, now.minus(23, ChronoUnit.DAYS),
+                currentExpireAt, "tx_001", "PLAY_STORE");
+        given(userPlanRepository.existsByUser_IdAndStartAtGreaterThanEqualAndStatus(
+                eq(1L), any(), eq(PlanStatus.ACTIVE)))
+                .willReturn(false);
+        given(userPlanRepository.findTopByUser_IdAndStartAtLessThanEqualAndExpireAtAfterAndStatusInOrderByExpireAtDesc(
+                eq(1L), any(), any(), eq(List.of(PlanStatus.ACTIVE, PlanStatus.CANCELLED))))
+                .willReturn(Optional.of(currentPlan));
+
+        //when
+        userPlanService.updatePlanByWebhook(testUser, PlanAction.RENEW, PlanDuration.MONTHLY,
+                null, "tx_002", "PLAY_STORE");
+
+        //then
+        then(userPlanRepository).should().save(any(UserPlan.class));
+    }
+
+    @Test
+    @DisplayName("updatePlanByWebhook - CANCEL 성공 (Webhook = Apple이 이미 환불 처리)")
+    void updatePlanByWebhook_cancel_success() {
+        //given
+        // Webhook CANCEL = Apple이 환불을 승인한 후 RevenueCat이 발송하는 이벤트
+        // 환불 API 호출 없이 DB 상태만 CANCELLED/REFUNDED로 업데이트
+        Instant expireAt = now.plus(14, ChronoUnit.DAYS);
+        testUser.updatePlan(PlanType.PREMIUM, PlanStatus.ACTIVE, expireAt);
+
+        UserPlan currentPlan = buildActivePlan(PlanDuration.MONTHLY, now.minus(16, ChronoUnit.DAYS),
+                expireAt, "tx_001", "APP_STORE");
+        given(userPlanRepository.findAllByUser_IdAndExpireAtAfterAndStatus(
+                eq(1L), any(), eq(PlanStatus.ACTIVE)))
+                .willReturn(List.of(currentPlan));
+
+        //when
+        userPlanService.updatePlanByWebhook(testUser, PlanAction.CANCEL, null,
+                null, "tx_001", "APP_STORE");
+
+        //then
+        // 상태 검증: CANCELLED 마킹
+        assertThat(currentPlan.getStatus()).isEqualTo(PlanStatus.CANCELLED);
+        // 상호작용 검증: 환불 API 호출 없음 (Apple이 이미 처리)
+        then(revenueCatRefundClient).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("updatePlanByWebhook - EXPIRE 성공 - 유저 마지막 플랜 만료 시 FREE 전환")
+    void updatePlanByWebhook_expire_lastPlan_freeConversion() {
+        //given
+        // planExpireAt이 이미 과거 → 마지막 플랜 만료 → 유저를 FREE로 전환
+        Instant expireAt = now.minus(1, ChronoUnit.SECONDS);
+        testUser.updatePlan(PlanType.PREMIUM, PlanStatus.ACTIVE, expireAt);
+
+        UserPlan expiredPlan = buildActivePlan(PlanDuration.MONTHLY, now.minus(30, ChronoUnit.DAYS),
+                expireAt, "tx_001", "PLAY_STORE");
+        given(userPlanRepository.findTopByUser_IdAndTransactionIdAndStatusInOrderByExpireAtDesc(
+                eq(1L), eq("tx_001"), any()))
+                .willReturn(Optional.of(expiredPlan));
+
+        //when
+        userPlanService.updatePlanByWebhook(testUser, PlanAction.EXPIRE, null,
+                expireAt, "tx_001", "PLAY_STORE");
+
+        //then
+        // 상태 검증
+        assertThat(expiredPlan.getStatus()).isEqualTo(PlanStatus.EXPIRED);
+        assertThat(testUser.getPlan()).isEqualTo(PlanType.FREE);
+    }
+
+    @Test
+    @DisplayName("updatePlanByWebhook - AUTO_RENEW 성공 - startAt이 currentPlan.expireAt이다 (구독 연속성)")
+    void updatePlanByWebhook_autoRenew_success() {
+        //given
+        Instant currentExpireAt = now.plus(3, ChronoUnit.DAYS);
+        Instant webhookExpireAt = currentExpireAt.plus(30, ChronoUnit.DAYS);
+        testUser.updatePlan(PlanType.PREMIUM, PlanStatus.ACTIVE, currentExpireAt);
+
+        UserPlan currentPlan = buildActivePlan(PlanDuration.MONTHLY,
+                now.minus(27, ChronoUnit.DAYS), currentExpireAt, "tx_001", "PLAY_STORE");
+
+        given(userPlanRepository.findTopByUser_IdAndStartAtLessThanEqualAndExpireAtAfterAndStatusInOrderByExpireAtDesc(
+                eq(1L), any(), any(), eq(List.of(PlanStatus.ACTIVE, PlanStatus.CANCELLED))))
+                .willReturn(Optional.of(currentPlan));
+
+        //when
+        userPlanService.updatePlanByWebhook(testUser, PlanAction.AUTO_RENEW, PlanDuration.MONTHLY,
+                webhookExpireAt, "tx_auto_001", "PLAY_STORE");
+
+        //then
+        then(userPlanRepository).should().save(argThat(plan ->
+                // startAt = currentPlan.expireAt (연속성 보장, now 아님)
+                Math.abs(plan.getStartAt().toEpochMilli() - currentExpireAt.toEpochMilli()) < 1000
+                        // expireAt = RevenueCat이 보내준 값 그대로 (서버 재계산 없음)
+                        && Math.abs(plan.getExpireAt().toEpochMilli() - webhookExpireAt.toEpochMilli()) < 1000
+                        && plan.getStatus() == PlanStatus.ACTIVE
+                        && plan.getDuration() == PlanDuration.MONTHLY
+        ));
+        assertThat(testUser.getPlanStatus()).isEqualTo(PlanStatus.ACTIVE);
+    }
+
+    @Test
+    @DisplayName("updatePlanByWebhook - AUTO_RENEW 성공 - 만료 30일 전에도 갱신 가능 (14일 창 제한 없음)")
+    void updatePlanByWebhook_autoRenew_noRenewWindowRestriction() {
+        //given
+        // RENEW였다면 14일 창 밖이라 RENEW_NOT_ALLOWED_YET 예외가 발생해야 하는 케이스
+        Instant currentExpireAt = now.plus(30, ChronoUnit.DAYS);
+        Instant webhookExpireAt = currentExpireAt.plus(30, ChronoUnit.DAYS);
+        testUser.updatePlan(PlanType.PREMIUM, PlanStatus.ACTIVE, currentExpireAt);
+
+        UserPlan currentPlan = buildActivePlan(PlanDuration.MONTHLY,
+                now.minus(1, ChronoUnit.DAYS), currentExpireAt, "tx_001", "PLAY_STORE");
+
+        given(userPlanRepository.findTopByUser_IdAndStartAtLessThanEqualAndExpireAtAfterAndStatusInOrderByExpireAtDesc(
+                eq(1L), any(), any(), eq(List.of(PlanStatus.ACTIVE, PlanStatus.CANCELLED))))
+                .willReturn(Optional.of(currentPlan));
+
+        //when & then - 예외 없이 정상 처리
+        userPlanService.updatePlanByWebhook(testUser, PlanAction.AUTO_RENEW, PlanDuration.MONTHLY,
+                webhookExpireAt, "tx_auto_001", "PLAY_STORE");
+
+        then(userPlanRepository).should().save(any(UserPlan.class));
+    }
+
+    @Test
+    @DisplayName("updatePlanByWebhook - AUTO_RENEW 실패 - webhookExpireAt이 null이면 예외")
+    void updatePlanByWebhook_autoRenew_nullWebhookExpireAt_throwsException() {
+        //given
+        testUser.updatePlan(PlanType.PREMIUM, PlanStatus.ACTIVE, now.plus(3, ChronoUnit.DAYS));
+
+        //when & then
+        assertThatThrownBy(() ->
+                userPlanService.updatePlanByWebhook(testUser, PlanAction.AUTO_RENEW, PlanDuration.MONTHLY,
+                        null, "tx_auto_001", "PLAY_STORE"))
+                .isInstanceOf(ApiException.class)
+                .hasFieldOrPropertyWithValue("errorCode", INVALID_UPDATE_PLAN_ACTION);
+
+        then(userPlanRepository).should(never()).save(any());
+    }
+
+    @Test
+    @DisplayName("updatePlanByWebhook - AUTO_RENEW 실패 - 현재 활성 플랜 없으면 예외")
+    void updatePlanByWebhook_autoRenew_noCurrentPlan_throwsException() {
+        //given
+        testUser.updatePlan(PlanType.PREMIUM, PlanStatus.ACTIVE, now.plus(3, ChronoUnit.DAYS));
+        Instant webhookExpireAt = now.plus(33, ChronoUnit.DAYS);
+
+        given(userPlanRepository.findTopByUser_IdAndStartAtLessThanEqualAndExpireAtAfterAndStatusInOrderByExpireAtDesc(
+                eq(1L), any(), any(), eq(List.of(PlanStatus.ACTIVE, PlanStatus.CANCELLED))))
+                .willReturn(Optional.empty());
+
+        //when & then
+        assertThatThrownBy(() ->
+                userPlanService.updatePlanByWebhook(testUser, PlanAction.AUTO_RENEW, PlanDuration.MONTHLY,
+                        webhookExpireAt, "tx_auto_001", "PLAY_STORE"))
+                .isInstanceOf(ApiException.class)
+                .hasFieldOrPropertyWithValue("errorCode", INVALID_UPDATE_PLAN_ACTION);
+
+        then(userPlanRepository).should(never()).save(any());
     }
 
     // ACTIVE 상태의 UserPlan 생성 헬퍼
@@ -512,11 +732,26 @@ class UserPlanServiceTest {
                 .build();
     }
 
+    //Webhook용 메서드 추가
+    private UserPlan buildActivePlan(PlanDuration duration, Instant startAt,
+                                     Instant expireAt, String transactionId, String store) {
+        return UserPlan.builder()
+                .user(testUser)
+                .plan(PlanType.PREMIUM)
+                .duration(duration)
+                .status(PlanStatus.ACTIVE)
+                .startAt(startAt)
+                .expireAt(expireAt)
+                .transactionId(transactionId)
+                .store(store)
+                .build();
+    }
+
     private void mockSecurityContext(String email) {
         Authentication auth = mock(Authentication.class);
         SecurityContext securityContext = mock(SecurityContext.class);
-        given(securityContext.getAuthentication()).willReturn(auth);
-        given(auth.getName()).willReturn(email);
+        lenient().when(securityContext.getAuthentication()).thenReturn(auth);
+        lenient().when(auth.getName()).thenReturn(email);
         SecurityContextHolder.setContext(securityContext);
     }
 }
