@@ -1,8 +1,8 @@
-name: CI - Build
+name: CI/CD - Build & Deploy (develop)
 
 on:
   push:
-    branches: [main]
+    branches: [develop]
     paths:
       - 'src/**'
       - 'build.gradle'
@@ -57,20 +57,20 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/dt-service-user
           tags: |
-            type=ref,event=branch
+            type=raw,value=test
             type=sha
-            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
   deploy:
     runs-on: [self-hosted, rpi, k8s-test]
     needs: build-and-push
@@ -87,16 +87,15 @@ jobs:
             --docker-server=ghcr.io \
             --docker-username=${{ github.actor }} \
             --docker-password=${{ secrets.GHCR_READ_SECRET }} \
-            -n dartoo \
+            -n dt-test \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Deploy to test environment
         run: |
-          cd k8s/overlays/prod
+          cd k8s/overlays/test
           kustomize edit set image \
             ghcr.io/team-dartoo/dt-service-user=ghcr.io/team-dartoo/dt-service-user:sha-$(echo ${{ github.sha }} | cut -c1-7)
           kubectl apply -k .
 
       - name: Verify rollout
-        run: kubectl rollout status deployment/dt-user -n dartoo --timeout=300s
-
+        run: kubectl rollout status deployment/dt-user -n dt-test --timeout=300s
