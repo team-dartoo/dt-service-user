@@ -15,7 +15,7 @@ public class UserRequestDto {
     public interface deleteGroup {} // 회원 삭제시
 
     @Email(groups = {existGroup.class, addGroup.class, deleteGroup.class})
-    @NotBlank(groups = {existGroup.class, addGroup.class, deleteGroup.class})
+    @NotBlank(groups = {existGroup.class, addGroup.class, deleteGroup.class}, message = "이메일 필드는 필수입니다.")
     private String userEmail;
 
     @Past(message = "생일은 과거 날짜여야 합니다", groups = {addGroup.class, updateGroup.class})
@@ -24,7 +24,7 @@ public class UserRequestDto {
     @NotBlank(groups = {addGroup.class}) @Size(min = 8, groups = {addGroup.class}, message = "비밀번호는 최소 8자 이상이어야 합니다.")
     private String password;
 
-    @NotBlank(groups = {addGroup.class, updateGroup.class})
+    @NotBlank(groups = {addGroup.class, updateGroup.class}, message = "닉네임을 입력해주세요.")
     private String nickname;
 
     private Gender gender;

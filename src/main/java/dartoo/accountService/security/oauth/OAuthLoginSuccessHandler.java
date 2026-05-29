@@ -3,6 +3,7 @@ package dartoo.accountService.security.oauth;
 import java.io.IOException;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -36,7 +37,7 @@ import lombok.extern.slf4j.Slf4j;
  * 여기에서:
  *  - provider별 사용자 프로필(attributes)을 공통 OAuth2UserInfo로 변환하고 UserEntity와 소셜 계정 정보를 upsert한 다음,
  *  - 최종적으로 JWT를 발급해서 프론트엔드 콜백 URL로 리다이렉트한다.
- *  - 프런트와 백엔드가 동일 도메인을 사용하므로 절대 경로 리다이렉트로 토큰을 전달한다.
+ *  - 프런트와 백엔드 도메인이 다를 수 있으므로 app.frontend-url 환경변수로 절대 URL을 구성한다.
  *  - 마이페이지에서 계정 연결을 누른 경우에도, 로그인으로 리다이렉트 된 뒤에 인증정보를 전달해주는 것이기 때문에,
  *  - 여기서 처리해서 결과를 리다이렉트 형태로 전달하게 된다.
  */
@@ -44,6 +45,9 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
+
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
 
     private final SocialLoginService socialLoginService;
     private final AuthService authService;
@@ -97,7 +101,7 @@ public class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
                 //void 반환형이라 직접 HttpServletResponse에 응답 message body를 담아야 한다
                 // writeJsonResponse(response,HttpServletResponse.SC_OK,responseDto);
                 //계정 연결 성공 → 프론트 설정 페이지로 리다이렉트, 어떤 provider가 연결됐는지 query param으로 전달
-                response.sendRedirect("/settings/account?linked=" + regId);
+                response.sendRedirect(frontendUrl + "/settings/account?linked=" + regId);
                 return;
             }
 
@@ -127,7 +131,7 @@ public class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
             //refresh_token은 authService.loginIssue() 내부에서 이미 HttpOnly 쿠키로 심어진다.
             //온보딩 분기에 필요한 isNewUser, isPasswordSet도 함께 전달한다.
             response.sendRedirect(
-                "/oauth/callback"
+                frontendUrl + "/oauth/callback"
                 + "#accessToken=" + tokenResponseDto.getAccessToken()
                 + "&isNewUser=" + loginResult.getIsNewUser()
                 + "&isPasswordSet=" + loginUser.getPasswordSet()
@@ -138,10 +142,10 @@ public class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
             log.warn("OAuth failed: errorCode={}, message={}", e.getErrorCode().name(), e.getMessage());
             if(isLinkFlow){
                 //계정 연결 중 에러 → 설정 페이지로
-                response.sendRedirect("/settings/account?error=" + e.getErrorCode().name());
+                response.sendRedirect(frontendUrl + "/settings/account?error=" + e.getErrorCode().name());
             } else {
                 //일반 로그인 중 에러 → 로그인 페이지로
-                response.sendRedirect("/login?error=" + e.getErrorCode().name());
+                response.sendRedirect(frontendUrl + "/login?error=" + e.getErrorCode().name());
             }
         }
     }

@@ -20,6 +20,19 @@ spring:
       hibernate.jdbc.time_zone: ${SPRING_JPA_HIBERNATE_TIME_ZONE:UTC}
   jackson:
     time-zone: ${SPRING_JACKSON_TIME_ZONE:UTC}
+  mail:
+    # JavaMailSender가 알아서 application.yml에서 긁어와서
+    # SMTP relay 방식에서 사용
+    host: smtp-relay.brevo.com
+    port: 587
+    username: ${BREVO_ACCOUNT_EMAIL}
+    password: ${BREVO_SMTP_KEY}
+    properties:
+      mail:
+        smtp:
+          auth: true          # SMTP 서버에 username/password 인증 사용
+          starttls:
+            enable: true      # 평문 연결(587 포트)을 TLS 암호화로 업그레이드 (STARTTLS)
   security:
     oauth2:
       client:
@@ -65,6 +78,7 @@ spring:
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
 
 app:
+  frontend-url: ${FRONTEND_URL}  # OAuth 완료 후 리다이렉트할 프론트엔드 기본 URL (예: https://dt-dev.dadaworld.net)
   jwt:
     issuer: "Dartoo"
     access-secret: ${JWT_ACCESS_SECRET}
