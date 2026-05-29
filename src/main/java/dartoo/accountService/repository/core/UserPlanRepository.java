@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UserPlanRepository extends JpaRepository<UserPlan,Long> {
+    boolean existsByUser_Id(Long id);
+
     List<UserPlan> findAllByUser_IdOrderByStartAtDesc(Long id);
 
 //    //현재 구독 이력 중 미래 포함 가장 최신 구독을 찾는다.
