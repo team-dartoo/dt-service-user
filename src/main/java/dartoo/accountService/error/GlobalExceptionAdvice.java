@@ -7,7 +7,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.util.HtmlUtils;
@@ -73,6 +75,31 @@ public class GlobalExceptionAdvice {
         );
         return ResponseEntity.badRequest().body(result);
     }
+
+    //컨트롤러의 @RequestHeader가 없을 때 리턴하는 클래스
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ErrorResult> handleMissingRequestHeaderException(
+            MissingRequestHeaderException e, HttpServletRequest request) {
+        log.warn("Missing request header: {}", e.getHeaderName());
+        ErrorResult result = new ErrorResult(
+                "MISSING_REQUIRED_HEADER", "필수 헤더가 누락되었습니다.",
+                HttpStatus.BAD_REQUEST.value(), HtmlUtils.htmlEscape(request.getRequestURI()), Instant.now()
+        );
+        return ResponseEntity.badRequest().body(result);
+    }
+
+    //존재하지 않는 엔드포인트 예외 처리
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResult> handleMethodNotAllowedException(
+            HttpRequestMethodNotSupportedException e, HttpServletRequest request) {
+        log.warn("Method not allowed: method={}, path={}", e.getMethod(), request.getRequestURI());
+        ErrorResult result = new ErrorResult(
+                "METHOD_NOT_ALLOWED", "지원하지 않는 HTTP 메서드입니다.",
+                HttpStatus.METHOD_NOT_ALLOWED.value(), HtmlUtils.htmlEscape(request.getRequestURI()), Instant.now()
+        );
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(result);
+    }
+
 
     //이외 예상치 못한 예외로직 처리
     @ExceptionHandler(Exception.class)

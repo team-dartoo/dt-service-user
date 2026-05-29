@@ -67,7 +67,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/users/**").authenticated() //회원 정보 관련이니까
                 .requestMatchers("/api/auth/**").permitAll() //로그인 관련이니까.
                 .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll() //oauth2 로그인 관련
+                .requestMatchers("/oauth/callback", "/login", "/settings/account").permitAll() //OAuth 완료 후 리다이렉트 되는 프론트 라우트 — 배포 시에는 프론트(WebView)에서 처리하는 경로이나, 로컬에서는 백엔드가 받기 때문에 필터 통과 허용
                 .requestMatchers("/actuator/health/**").permitAll() //헬스체크 관련
+                .requestMatchers("/api/webhooks/**").permitAll() // RevenueCat Webhook은 JWT가 없으므로.
                 .anyRequest().authenticated());
         http.sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.csrf(AbstractHttpConfigurer::disable);
@@ -88,7 +90,7 @@ public class SecurityConfig {
                         .userService(customOAuth2UserService)   // provider별(profile 구조) userInfo → 우리 도메인 유저 정보로 매핑
                 )
                 .successHandler(oAuthLoginSuccessHandler)       // 소셜 로그인 성공 시 → 우리 JWT 발급
-                .failureHandler(oAuthLoginFailureHandler)       // 실패 처리 → 401 JSON 응답
+                .failureHandler(oAuthLoginFailureHandler)       // 실패 처리 → /login?error={errorCode} 리다이렉트
         );
         return http.build();
     }

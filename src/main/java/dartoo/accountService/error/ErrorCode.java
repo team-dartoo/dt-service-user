@@ -73,6 +73,13 @@ public enum ErrorCode {
 
     //외부 서비스 연동 관련
     EXTERNAL_SERVICE_ERROR(HttpStatus.BAD_GATEWAY, "외부 서비스 연동 중 오류가 발생했습니다.");
+
+    //RevenueCat 관련
+    INVALID_WEBHOOK_SECRET(HttpStatus.UNAUTHORIZED,"유효하지 않은 Webhook Secret입니다."),
+    INVALID_PRODUCT_ID(HttpStatus.BAD_REQUEST,"등록되지 않은 RevenueCat product_id입니다."),
+    REFUND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,"RevenueCat 환불 API 호출에 실패했습니다."),
+    APPLE_REFUND_REQUIRED(HttpStatus.METHOD_NOT_ALLOWED,"App Store 결제된 플랜의 경우에는 인 앱 환불이 불가합니다.");
+
     private final HttpStatus status;
     private final String message;
 }
