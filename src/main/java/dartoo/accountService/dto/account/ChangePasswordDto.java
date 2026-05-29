@@ -13,7 +13,7 @@ public class ChangePasswordDto {
     private String currentPassword;
 
     @NotBlank(groups = {passwordGroup.class})
-    @Size(min = 8, groups = {passwordGroup.class})
+    @Size(min = 8, groups = {passwordGroup.class}, message = "비밀번호는 최소 8자 이상이어야 합니다.")
     private String newPassword;
 }
 
