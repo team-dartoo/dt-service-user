@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UserNotificationRepository extends JpaRepository<UserNotification, Long> {
+    boolean existsByUser_Id(Long id);
+
     Optional<UserNotification> findByIdAndUser_Id(Long id, Long userId);
 
     List<UserNotification> findAllByUser_IdAndCreatedAtAfterAndStatusNotOrderByCreatedAtDesc(Long userId, Instant createdAtAfter, NotificationStatus status);

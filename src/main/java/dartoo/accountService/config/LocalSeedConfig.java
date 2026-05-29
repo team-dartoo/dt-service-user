@@ -93,6 +93,7 @@ public class LocalSeedConfig {
     }
 
     private void setSearchHistory(UserEntity user) {
+        if (userSearchHistoryRepository.existsByUser_Id(user.getId())) return;
         UserSearchHistory searchHistory = UserSearchHistory.builder()
                 .user(user)
                 .searchedAt(Instant.now().minusSeconds(3600*24*3))
@@ -109,6 +110,7 @@ public class LocalSeedConfig {
     }
 
     private void setNotification(UserEntity user) {
+        if (userNotificationRepository.existsByUser_Id(user.getId())) return;
         UserNotification notification = UserNotification.builder()
                 .user(user)
                 .title("멤버십 결제 만료")
@@ -122,6 +124,7 @@ public class LocalSeedConfig {
     }
 
     private void setBookmark(UserEntity user) {
+        if (userCorpBookmarkRepository.existsByUser_Id(user.getId())) return;
         UserCorpBookmark bookmark = UserCorpBookmark.builder()
                 .user(user)
                 .corpCode("00126380")
@@ -141,6 +144,7 @@ public class LocalSeedConfig {
     }
 
     private void setPlanHistory(UserEntity user) {
+        if (userPlanRepository.existsByUser_Id(user.getId())) return;
         UserPlan plan;
         if(user.getPlan()==PlanType.FREE){
             plan = UserPlan.builder()

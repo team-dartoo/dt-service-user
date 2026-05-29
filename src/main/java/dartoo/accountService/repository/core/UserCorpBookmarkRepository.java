@@ -12,6 +12,8 @@ public interface UserCorpBookmarkRepository extends JpaRepository<UserCorpBookma
 
     List<UserCorpBookmark> findAllByUser_IdOrderByDisplayOrderAscIdAsc(Long id);
 
+    boolean existsByUser_Id(Long id);
+
     boolean existsByUser_IdAndCorpCode(Long id, String corpCode);
 
     long deleteByUser_IdAndCorpCode(Long id, String corpCode);
