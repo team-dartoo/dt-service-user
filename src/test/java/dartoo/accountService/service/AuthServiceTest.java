@@ -70,6 +70,7 @@ public class AuthServiceTest {
                 .password("encodedPass")
                 .nickname("테스터")
                 .role(Role.USER)
+                .emailActivated(true)
                 .build();
 
         // JwtConfig Mock 기본 설정
@@ -177,6 +178,28 @@ public class AuthServiceTest {
                 .hasFieldOrPropertyWithValue("errorCode", USER_NOT_FOUND);
 
         //예외가 발생했으니 토큰 생성 로직은 실행되지 않아야 한다.
+        then(tokenService).should(never()).createAccessToken(any(), any());
+    }
+
+    @DisplayName("이메일 인증이 완료되지 않은 사용자는 EMAIL_NOT_VERIFIED 예외를 던진다")
+    @Test
+    public void loginIssue_emailNotVerified() {
+        // given
+        UserEntity unverifiedUser = UserEntity.builder()
+                .userEmail("unverified@test.com")
+                .password("encodedPass")
+                .nickname("미인증")
+                .role(Role.USER)
+                .emailActivated(false)
+                .build();
+        given(userEntityRepository.findByUserEmail("unverified@test.com")).willReturn(Optional.of(unverifiedUser));
+
+        // when, then
+        assertThatThrownBy(() ->
+                authService.loginIssue("unverified@test.com", "did", "agent", response))
+                .isInstanceOf(ApiException.class)
+                .hasFieldOrPropertyWithValue("errorCode", EMAIL_NOT_VERIFIED);
+
         then(tokenService).should(never()).createAccessToken(any(), any());
     }
 
