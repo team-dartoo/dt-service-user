@@ -5,6 +5,7 @@ import dartoo.accountService.domain.RefreshToken;
 import dartoo.accountService.domain.UserEntity;
 import dartoo.accountService.dto.account.TokenResponseDto;
 import dartoo.accountService.error.ApiException;
+import dartoo.accountService.error.ErrorCode;
 import dartoo.accountService.repository.RefreshTokenRepository;
 import dartoo.accountService.repository.UserEntityRepository;
 import io.jsonwebtoken.Claims;
@@ -42,6 +43,11 @@ public class AuthService {
         Instant now = Instant.now();
 
         UserEntity user = userEntityRepository.findByUserEmail(email).orElseThrow(()->new ApiException(USER_NOT_FOUND));
+
+        //이메일 활성화 안했으면 바로 거절
+        if (!user.getEmailActivated()) {
+            throw new ApiException(ErrorCode.EMAIL_NOT_VERIFIED);
+        }
 
         //이미 만료된 RT 삭제
         refreshTokenRepository.deleteAllByUserEntityAndExpiredAtBefore(user,now);

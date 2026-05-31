@@ -103,6 +103,7 @@ public class SocialLoginService {
                 .role(Role.USER)
                 .gender(profile.getGender())
                 .birthday(profile.getBirthday())
+                .emailActivated(true) //소셜 제공자가 이미 검증한 이메일이므로, 별도의 인증 활성화 메일 필요 없음.
                 .build();
     }
 

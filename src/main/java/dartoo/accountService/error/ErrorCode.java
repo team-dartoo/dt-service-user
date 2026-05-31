@@ -1,8 +1,9 @@
 package dartoo.accountService.error;
 
+import org.springframework.http.HttpStatus;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
 
 @AllArgsConstructor
 @Getter
@@ -75,7 +76,15 @@ public enum ErrorCode {
     INVALID_WEBHOOK_SECRET(HttpStatus.UNAUTHORIZED,"유효하지 않은 Webhook Secret입니다."),
     INVALID_PRODUCT_ID(HttpStatus.BAD_REQUEST,"등록되지 않은 RevenueCat product_id입니다."),
     REFUND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,"RevenueCat 환불 API 호출에 실패했습니다."),
-    APPLE_REFUND_REQUIRED(HttpStatus.METHOD_NOT_ALLOWED,"App Store 결제된 플랜의 경우에는 인 앱 환불이 불가합니다.");
+    APPLE_REFUND_REQUIRED(HttpStatus.METHOD_NOT_ALLOWED,"App Store 결제된 플랜의 경우에는 인 앱 환불이 불가합니다."),
+
+    //이메일 관련
+    EMAIL_NOT_VERIFIED(HttpStatus.FORBIDDEN, "이메일 인증이 완료되지 않았습니다."),
+    EMAIL_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "만료된 링크입니다."),
+    EMAIL_TOKEN_ALREADY_USED(HttpStatus.CONFLICT, "이미 사용된 링크입니다."),
+    EMAIL_TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND,"이메일 토큰을 찾을 수 없습니다."),
+    EMAIL_SEND_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "이메일 발송에 실패했습니다."),
+    EMAIL_SEND_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "이메일 발송 한도를 초과했습니다. 잠시 후 다시 시도해주세요.");
 
     private final HttpStatus status;
     private final String message;

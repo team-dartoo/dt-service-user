@@ -109,6 +109,7 @@ mail:
   verification:
     activation-expire-minutes: ${MAIL_ACTIVATION_EXPIRE_MINUTES}
     password-reset-expire-minutes: ${MAIL_PASSWORD_RESET_EXPIRE_MINUTES}
+  base-url: ${MAIL_BASE_URL}
 
 logging:
   level:

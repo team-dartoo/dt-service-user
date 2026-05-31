@@ -59,6 +59,12 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
+    // SMTP 이메일 발송
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+
+    // 이메일 HTML 템플릿 렌더링
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+
     // health check
     implementation ('org.springframework.boot:spring-boot-starter-actuator') {
         exclude group: 'io.netty'

@@ -4,6 +4,7 @@ import dartoo.accountService.domain.RefreshToken;
 import dartoo.accountService.domain.UserAgreed;
 import dartoo.accountService.domain.UserPreference;
 import dartoo.accountService.domain.enums.Role;
+import dartoo.accountService.domain.enums.TokenPurpose;
 import dartoo.accountService.domain.UserEntity;
 import dartoo.accountService.dto.account.ChangePasswordDto;
 import dartoo.accountService.dto.account.UserRequestDto;
@@ -12,6 +13,7 @@ import dartoo.accountService.error.ApiException;
 import dartoo.accountService.repository.*;
 import dartoo.accountService.repository.core.UserCorpBookmarkRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,6 +26,7 @@ import java.util.List;
 
 import static dartoo.accountService.error.ErrorCode.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -35,6 +38,7 @@ public class UserService {
     private final UserAgreedRepository userAgreedRepository;
     private final UserPreferenceRepository userPreferenceRepository;
     private final UserCorpBookmarkRepository userCorpBookmarkRepository;
+    private final EmailVerificationService emailVerificationService;
 
     //자체 회원 가입, 탈퇴, 회원 정보 수정 관련 로직 등 -> 최대한 Long id는 사용하지 않는 방식으로 구현
     //회원 정보 업데이트 시 이메일을 DTO에 담아서 하는 것보다, SecurityContextHolder에
@@ -54,7 +58,7 @@ public class UserService {
         return userEntityRepository.existsByUserEmail((dto.getUserEmail()));
     }
 
-    //신규 회원 가입
+    //자체 로그인으로 신규 회원 가입
     public Long addUser(UserRequestDto dto){
         if(userEntityRepository.existsByUserEmail(dto.getUserEmail())){
             throw new ApiException(USER_ALREADY_EXISTS);
@@ -63,13 +67,46 @@ public class UserService {
                 .userEmail(dto.getUserEmail())
                 .password(passwordEncoder.encode(dto.getPassword()))
                 .passwordSet(true)
+                .emailActivated(false)
                 .role(Role.USER)
                 .gender(dto.getGender())
                 .nickname(dto.getNickname())
                 .birthday(dto.getBirthday())
                 .build();
 
-        return saveUserWithDefaultSettings(newUser).getId();
+        UserEntity saved = saveUserWithDefaultSettings(newUser);
+
+        try {
+            emailVerificationService.issueActivationEmail(saved.getUserEmail());
+        } catch (Exception e) {
+            log.warn("가입 후 인증 이메일 발송 실패, 재발송 필요: email={}", saved.getUserEmail());
+        }
+
+        return saved.getId();
+    }
+
+    /** GET /api/auth/email/activate 에서 호출 */
+    public void markEmailActivated(String email) {
+        UserEntity user = userEntityRepository.findByUserEmail(email)
+                .orElseThrow(() -> new ApiException(USER_NOT_FOUND));
+        user.activateEmail();
+    }
+
+    /** POST /api/auth/password-reset/request 에서 호출 */
+    public void requestPasswordReset(String email) {
+        userEntityRepository.findByUserEmail(email)
+                .filter(user -> user.getPassword() != null)
+                .ifPresent(user -> emailVerificationService.sendPasswordResetEmail(email));
+    }
+
+    /** POST /api/auth/password-reset/confirm 에서 호출 */
+    @Transactional
+    public void confirmPasswordReset(String token, String newPassword) {
+        String email = emailVerificationService.verifyToken(token, TokenPurpose.RESET_PASSWORD);
+        UserEntity user = userEntityRepository.findByUserEmail(email)
+                .orElseThrow(() -> new ApiException(USER_NOT_FOUND));
+        user.changePassword(passwordEncoder.encode(newPassword));
+        refreshTokenRepository.deleteAllByUserEntity(user);
     }
 
     @Transactional
