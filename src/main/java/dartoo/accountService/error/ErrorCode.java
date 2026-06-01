@@ -78,6 +78,8 @@ public enum ErrorCode {
     REFUND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,"RevenueCat 환불 API 호출에 실패했습니다."),
     APPLE_REFUND_REQUIRED(HttpStatus.METHOD_NOT_ALLOWED,"App Store 결제된 플랜의 경우에는 인 앱 환불이 불가합니다."),
 
+    //약관 관련
+    TERMS_REQUIRED_FIELDS_MUST_BE_AGREED(HttpStatus.UNPROCESSABLE_ENTITY, "이용약관과 개인정보처리방침은 필수 동의 항목입니다."),
     //이메일 관련
     EMAIL_NOT_VERIFIED(HttpStatus.FORBIDDEN, "이메일 인증이 완료되지 않았습니다."),
     EMAIL_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "만료된 링크입니다."),

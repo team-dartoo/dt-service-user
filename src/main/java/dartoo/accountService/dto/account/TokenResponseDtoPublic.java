@@ -11,6 +11,7 @@ public class TokenResponseDtoPublic {
     private String accessToken;
     private Long accessTokenTtl;
     private Boolean isPasswordSet;
+    private Boolean requiresTermsConsent;
 }
 /*
 실제로 프런트에서 이미 쿠키로 리프레시 토큰을 받는데

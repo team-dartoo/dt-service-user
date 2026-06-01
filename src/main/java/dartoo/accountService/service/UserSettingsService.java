@@ -1,5 +1,6 @@
 package dartoo.accountService.service;
 
+import dartoo.accountService.config.TermsConfig;
 import dartoo.accountService.domain.UserAgreed;
 import dartoo.accountService.domain.UserEntity;
 import dartoo.accountService.domain.UserPreference;
@@ -20,6 +21,7 @@ import static dartoo.accountService.error.ErrorCode.*;
 @RequiredArgsConstructor
 @Transactional
 public class UserSettingsService {
+    private final TermsConfig termsConfig;
     private final UserEntityRepository userEntityRepository;
     private final UserAgreedRepository userAgreedRepository;
     private final UserPreferenceRepository userPreferenceRepository;
@@ -52,10 +54,13 @@ public class UserSettingsService {
                     user.attachAgreed(newAgreed);
                     return newAgreed;
                 });
+        if (Boolean.FALSE.equals(settings.getTosAgreed()) || Boolean.FALSE.equals(settings.getPrivacyAgreed())) {
+            throw new ApiException(TERMS_REQUIRED_FIELDS_MUST_BE_AGREED);
+        }
         useragreed.setTosAgreed(settings.getTosAgreed());
-        useragreed.setTosVersion(settings.getTosVersion());
-        useragreed.setPrivacyVersion(settings.getPrivacyVersion());
+        useragreed.setTosVersion(termsConfig.getTosVersion());
         useragreed.setPrivacyAgreed(settings.getPrivacyAgreed());
+        useragreed.setPrivacyVersion(termsConfig.getPrivacyVersion());
         useragreed.setMarketingAgreed(settings.getMarketingAgreed());
         return new AgreedSettingsDto(
                 useragreed.getTosAgreed(), useragreed.getTosVersion(),

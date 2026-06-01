@@ -71,7 +71,7 @@ public class AuthController {
 
             TokenResponseDto internal = authService.loginIssue(email, did, userAgent, response);
             TokenResponseDtoPublic publicDto = new TokenResponseDtoPublic(internal.getAccessToken(),
-                    internal.getAccessTokenTtl(), internal.getIsPasswordSet());
+                    internal.getAccessTokenTtl(), internal.getIsPasswordSet(), internal.getRequiresTermsConsent());
             return ResponseEntity.ok(publicDto);
         } catch (BadCredentialsException e) {
             throw new ApiException(INVALID_CREDENTIALS);
@@ -88,7 +88,7 @@ public class AuthController {
         }
         TokenResponseDto internal = authService.refresh(refreshToken,false,response);
         TokenResponseDtoPublic dto = new TokenResponseDtoPublic(internal.getAccessToken(),
-                internal.getAccessTokenTtl(), internal.getIsPasswordSet());
+                internal.getAccessTokenTtl(), internal.getIsPasswordSet(), false);
         return ResponseEntity.ok(dto);
     }
 
@@ -101,7 +101,7 @@ public class AuthController {
         }
         TokenResponseDto internal = authService.refresh(refreshToken,true,response);
         TokenResponseDtoPublic dto = new TokenResponseDtoPublic(internal.getAccessToken(),
-                internal.getAccessTokenTtl(), internal.getIsPasswordSet());
+                internal.getAccessTokenTtl(), internal.getIsPasswordSet(), false);
         return ResponseEntity.ok(dto);
     }
 

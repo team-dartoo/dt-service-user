@@ -94,6 +94,9 @@ app:
     issuer: "Dartoo"
   security:
     worker-api-key: ${WORKER_API_KEY}
+  terms:
+    tos-version: ${TERMS_TOS_VERSION:1.0.0}
+    privacy-version: ${TERMS_PRIVACY_VERSION:1.0.0}
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000} # CORS 허용 URL을 설정
