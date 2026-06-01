@@ -242,9 +242,9 @@ public class LocalSeedConfig {
         UserAgreed agreed = UserAgreed.builder()
                 .user(user)
                 .privacyAgreed(true)
-                .privacyVersion("1.0.0")
+                .privacyVersion("0.0.0")
                 .tosAgreed(true)
-                .tosVersion("1.0.0")
+                .tosVersion("0.0.0")
                 .marketingAgreed(false)
                 .build();
         user.attachAgreed(agreed);
