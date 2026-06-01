@@ -1,5 +1,6 @@
 package dartoo.accountService.service;
 
+import dartoo.accountService.config.TermsConfig;
 import dartoo.accountService.domain.*;
 import dartoo.accountService.domain.enums.Gender;
 import dartoo.accountService.domain.enums.Role;
@@ -24,9 +25,13 @@ import static dartoo.accountService.error.ErrorCode.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
+import org.springframework.http.HttpStatus;
 
 @ExtendWith(MockitoExtension.class)
 public class UserSettingsServiceTest {
+    @Mock
+    TermsConfig termsConfig;
     @Mock
     UserEntityRepository userEntityRepository;
     @Mock
@@ -43,6 +48,9 @@ public class UserSettingsServiceTest {
 
     @BeforeEach
     public void setUp() {
+        lenient().when(termsConfig.getTosVersion()).thenReturn("1.0.0");
+        lenient().when(termsConfig.getPrivacyVersion()).thenReturn("1.0.0");
+
         testUser = UserEntity.builder()
                 .id(1L)
                 .userEmail("test@test.com")
@@ -147,7 +155,7 @@ public class UserSettingsServiceTest {
     }
 
     @Test
-    @DisplayName("기존 약관 동의 정보가 있을 경우 업데이트")
+    @DisplayName("기존 약관 동의 정보가 있을 경우 업데이트 - 버전은 서버 config 값으로 저장됨")
     void updateUserAgreedSettingsThatExists(){
         //given
         given(userEntityRepository.findByUserEmail("test@test.com")).willReturn(Optional.of(testUser));
@@ -155,23 +163,23 @@ public class UserSettingsServiceTest {
 
         AgreedSettingsDto newSettings = new AgreedSettingsDto();
         newSettings.setTosAgreed(true);
-        newSettings.setTosVersion("1.0.1");
+        newSettings.setTosVersion("클라이언트가_임의로_보낸_버전");
         newSettings.setPrivacyAgreed(true);
-        newSettings.setPrivacyVersion("1.0.1");
+        newSettings.setPrivacyVersion("클라이언트가_임의로_보낸_버전");
         newSettings.setMarketingAgreed(true);
 
         //when
         AgreedSettingsDto result = userSettingsService.updateUserAgreedSettings("test@test.com", newSettings);
         //then
-        assertThat(result.getTosAgreed()).isEqualTo(newSettings.getTosAgreed());
-        assertThat(result.getTosVersion()).isEqualTo(newSettings.getTosVersion());
-        assertThat(result.getPrivacyAgreed()).isEqualTo(newSettings.getPrivacyAgreed());
-        assertThat(result.getPrivacyVersion()).isEqualTo(newSettings.getPrivacyVersion());
-        assertThat(result.getMarketingAgreed()).isEqualTo(newSettings.getMarketingAgreed());
+        assertThat(result.getTosAgreed()).isTrue();
+        assertThat(result.getTosVersion()).isEqualTo("1.0.0");       // config 값
+        assertThat(result.getPrivacyAgreed()).isTrue();
+        assertThat(result.getPrivacyVersion()).isEqualTo("1.0.0");   // config 값
+        assertThat(result.getMarketingAgreed()).isTrue();
     }
 
     @Test
-    @DisplayName("신규 약관 동의 정보 등록")
+    @DisplayName("신규 약관 동의 정보 등록 - 버전은 서버 config 값으로 저장됨")
     void updateUserAgreedSettingsNew(){
         //given
         given(userEntityRepository.findByUserEmail("test@test.com")).willReturn(Optional.of(testUser));
@@ -179,19 +187,55 @@ public class UserSettingsServiceTest {
 
         AgreedSettingsDto newSettings = new AgreedSettingsDto();
         newSettings.setTosAgreed(true);
-        newSettings.setTosVersion("1.0.1");
+        newSettings.setTosVersion("클라이언트가_임의로_보낸_버전");
         newSettings.setPrivacyAgreed(true);
-        newSettings.setPrivacyVersion("1.0.1");
+        newSettings.setPrivacyVersion("클라이언트가_임의로_보낸_버전");
         newSettings.setMarketingAgreed(true);
 
         //when
         AgreedSettingsDto result = userSettingsService.updateUserAgreedSettings("test@test.com", newSettings);
         //then
-        assertThat(result.getTosAgreed()).isEqualTo(newSettings.getTosAgreed());
-        assertThat(result.getTosVersion()).isEqualTo(newSettings.getTosVersion());
-        assertThat(result.getPrivacyAgreed()).isEqualTo(newSettings.getPrivacyAgreed());
-        assertThat(result.getPrivacyVersion()).isEqualTo(newSettings.getPrivacyVersion());
-        assertThat(result.getMarketingAgreed()).isEqualTo(newSettings.getMarketingAgreed());
+        assertThat(result.getTosAgreed()).isTrue();
+        assertThat(result.getTosVersion()).isEqualTo("1.0.0");       // config 값
+        assertThat(result.getPrivacyAgreed()).isTrue();
+        assertThat(result.getPrivacyVersion()).isEqualTo("1.0.0");   // config 값
+        assertThat(result.getMarketingAgreed()).isTrue();
+    }
+
+    @Test
+    @DisplayName("tosAgreed = false 시 TERMS_REQUIRED_FIELDS_MUST_BE_AGREED 예외를 던진다")
+    void updateUserAgreedSettings_tosAgreedFalse_throwsException(){
+        //given
+        given(userEntityRepository.findByUserEmail("test@test.com")).willReturn(Optional.of(testUser));
+        given(userAgreedRepository.findById(testUser.getId())).willReturn(Optional.of(testAgreed));
+
+        AgreedSettingsDto newSettings = new AgreedSettingsDto();
+        newSettings.setTosAgreed(false);
+        newSettings.setPrivacyAgreed(true);
+        newSettings.setMarketingAgreed(false);
+
+        //when, then
+        assertThatThrownBy(() -> userSettingsService.updateUserAgreedSettings("test@test.com", newSettings))
+                .isInstanceOf(ApiException.class)
+                .hasFieldOrPropertyWithValue("errorCode", TERMS_REQUIRED_FIELDS_MUST_BE_AGREED);
+    }
+
+    @Test
+    @DisplayName("privacyAgreed = false 시 TERMS_REQUIRED_FIELDS_MUST_BE_AGREED 예외를 던진다")
+    void updateUserAgreedSettings_privacyAgreedFalse_throwsException(){
+        //given
+        given(userEntityRepository.findByUserEmail("test@test.com")).willReturn(Optional.of(testUser));
+        given(userAgreedRepository.findById(testUser.getId())).willReturn(Optional.of(testAgreed));
+
+        AgreedSettingsDto newSettings = new AgreedSettingsDto();
+        newSettings.setTosAgreed(true);
+        newSettings.setPrivacyAgreed(false);
+        newSettings.setMarketingAgreed(false);
+
+        //when, then
+        assertThatThrownBy(() -> userSettingsService.updateUserAgreedSettings("test@test.com", newSettings))
+                .isInstanceOf(ApiException.class)
+                .hasFieldOrPropertyWithValue("errorCode", TERMS_REQUIRED_FIELDS_MUST_BE_AGREED);
     }
 
     @Test

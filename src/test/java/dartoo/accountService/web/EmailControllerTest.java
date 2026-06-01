@@ -57,7 +57,7 @@ class EmailControllerTest {
     // ── POST /api/auth/email/activation ──────────────────────────────────────
 
     @Test
-    @DisplayName("POST /api/auth/email/activation - 인증 이메일 재발송 성공 시 200 반환")
+    @DisplayName("POST /api/auth/email/activation - 인증 이메일 재발송 성공 시 204 반환")
     void resendActivationEmail_success() throws Exception {
         // given
         EmailActivationRequestDto dto = new EmailActivationRequestDto();
@@ -67,7 +67,7 @@ class EmailControllerTest {
         mockMvc.perform(post("/api/auth/email/activation")
                         .contentType(APPLICATION_JSON_VALUE)
                         .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isOk());
+                .andExpect(status().isNoContent());
 
         then(emailVerificationService).should().issueActivationEmail("test@test.com");
     }
@@ -108,7 +108,7 @@ class EmailControllerTest {
     // ── GET /api/auth/email/activate ─────────────────────────────────────────
 
     @Test
-    @DisplayName("GET /api/auth/email/activate - 유효한 토큰 클릭 시 200 반환")
+    @DisplayName("GET /api/auth/email/activate - 유효한 토큰 클릭 시 204 반환")
     void activateEmail_success() throws Exception {
         // given
         given(emailVerificationService.verifyToken("valid-token", TokenPurpose.ACTIVATION))
@@ -117,7 +117,7 @@ class EmailControllerTest {
         // when, then
         mockMvc.perform(get("/api/auth/email/activate")
                         .param("token", "valid-token"))
-                .andExpect(status().isOk());
+                .andExpect(status().isNoContent());
 
         then(userService).should().markEmailActivated("test@test.com");
     }
@@ -164,7 +164,7 @@ class EmailControllerTest {
     // ── POST /api/auth/password-reset/request ────────────────────────────────
 
     @Test
-    @DisplayName("POST /api/auth/password-reset/request - 이메일 존재 여부와 무관하게 200 반환")
+    @DisplayName("POST /api/auth/password-reset/request - 이메일 존재 여부와 무관하게 204 반환")
     void requestPasswordReset_alwaysOk() throws Exception {
         // given
         PasswordResetRequestDto dto = new PasswordResetRequestDto();
@@ -174,7 +174,7 @@ class EmailControllerTest {
         mockMvc.perform(post("/api/auth/password-reset/request")
                         .contentType(APPLICATION_JSON_VALUE)
                         .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isOk());
+                .andExpect(status().isNoContent());
 
         then(userService).should().requestPasswordReset("test@test.com");
     }
@@ -182,7 +182,7 @@ class EmailControllerTest {
     // ── POST /api/auth/password-reset/confirm ────────────────────────────────
 
     @Test
-    @DisplayName("POST /api/auth/password-reset/confirm - 유효한 토큰 + 새 비밀번호 제출 시 200 반환")
+    @DisplayName("POST /api/auth/password-reset/confirm - 유효한 토큰 + 새 비밀번호 제출 시 204 반환")
     void confirmPasswordReset_success() throws Exception {
         // given
         PasswordResetConfirmDto dto = new PasswordResetConfirmDto();
@@ -193,7 +193,7 @@ class EmailControllerTest {
         mockMvc.perform(post("/api/auth/password-reset/confirm")
                         .contentType(APPLICATION_JSON_VALUE)
                         .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isOk());
+                .andExpect(status().isNoContent());
 
         then(userService).should().confirmPasswordReset("valid-token", "newPassword123");
     }
