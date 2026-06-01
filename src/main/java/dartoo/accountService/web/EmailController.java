@@ -21,25 +21,25 @@ public class EmailController {
     @PostMapping("/email/activation")
     public ResponseEntity<Void> resendActivationEmail(@RequestBody EmailActivationRequestDto dto) {
         emailVerificationService.issueActivationEmail(dto.getEmail());
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/email/activate")
     public ResponseEntity<Void> activateEmail(@RequestParam String token) {
         String email = emailVerificationService.verifyToken(token, TokenPurpose.ACTIVATION);
         userService.markEmailActivated(email);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/password-reset/request")
     public ResponseEntity<Void> requestPasswordReset(@RequestBody PasswordResetRequestDto dto) {
         userService.requestPasswordReset(dto.getEmail());
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/password-reset/confirm")
     public ResponseEntity<Void> confirmPasswordReset(@RequestBody PasswordResetConfirmDto dto) {
         userService.confirmPasswordReset(dto.getToken(), dto.getPassword());
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 }
