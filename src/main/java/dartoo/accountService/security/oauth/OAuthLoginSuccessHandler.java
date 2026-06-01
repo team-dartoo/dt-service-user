@@ -135,6 +135,7 @@ public class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
                 + "#accessToken=" + tokenResponseDto.getAccessToken()
                 + "&isNewUser=" + loginResult.getIsNewUser()
                 + "&isPasswordSet=" + loginUser.getPasswordSet()
+                + "&requiresTermsConsent=" + tokenResponseDto.getRequiresTermsConsent()
             );
         } catch (ApiException e){
             //OAuth는 브라우저 리다이렉트 기반이므로 에러도 JSON 대신 프론트로 리다이렉트한다.
