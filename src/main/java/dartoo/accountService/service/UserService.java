@@ -95,7 +95,7 @@ public class UserService {
     /** POST /api/auth/password-reset/request 에서 호출 */
     public void requestPasswordReset(String email) {
         userEntityRepository.findByUserEmail(email)
-                .filter(user -> user.getPassword() != null)
+                .filter(UserEntity::getPasswordSet)
                 .ifPresent(user -> emailVerificationService.sendPasswordResetEmail(email));
     }
 
