@@ -72,6 +72,9 @@ public enum ErrorCode {
     TRIAL_ALREADY_USED(HttpStatus.CONFLICT,"이미 TRIAL을 사용한 사용자입니다."),
     TRIAL_NOT_ALLOWED_FOR_EXISTING_CUSTOMER(HttpStatus.FORBIDDEN,"이미 유료 요금제 사용 경력이 있는 사용자입니다."),
 
+    //외부 서비스 연동 관련
+    EXTERNAL_SERVICE_ERROR(HttpStatus.BAD_GATEWAY, "외부 서비스 연동 중 오류가 발생했습니다.");
+
     //RevenueCat 관련
     INVALID_WEBHOOK_SECRET(HttpStatus.UNAUTHORIZED,"유효하지 않은 Webhook Secret입니다."),
     INVALID_PRODUCT_ID(HttpStatus.BAD_REQUEST,"등록되지 않은 RevenueCat product_id입니다."),

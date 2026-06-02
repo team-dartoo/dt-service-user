@@ -19,5 +19,6 @@ data:
   SPRING_JACKSON_TIME_ZONE: UTC
   DB_URL: jdbc:postgresql://db-svc:5432/dartoo?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
   HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
+  NOTIFICATION_SERVICE_BASE_URL: "http://dt-notification:9803"
   SECURITY_LOG_LEVEL: "INFO"
   APP_LOG_LEVEL: "INFO"

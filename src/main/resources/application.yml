@@ -121,3 +121,6 @@ logging:
     dartoo.accountService: ${APP_LOG_LEVEL}
 
 kind: Application
+notification-service:
+  base-url: ${NOTIFICATION_SERVICE_BASE_URL:http://localhost:9803}
+  worker-api-key: ${WORKER_API_KEY:dev-worker-key}
