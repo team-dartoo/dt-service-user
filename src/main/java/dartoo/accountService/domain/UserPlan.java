@@ -60,6 +60,12 @@ public class UserPlan {
     @LastModifiedDate
     private Instant updatedAt;
 
+    @Column //nullable인 이유 - TRIAL이나, 수동으로 관리자가 부여한 경우에 transactionId가 null임.
+    private String transactionId;
+
+    //결제 스토어에 따라 환불 로직이 달라진다.
+    private String store;
+
     public void changeStatus(PlanStatus status) {
         this.status = status;
     }

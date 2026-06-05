@@ -11,6 +11,8 @@ import java.util.Optional;
 
 public interface UserSearchHistoryRepository extends JpaRepository<UserSearchHistory, Long> {
     //사용자 ID와 검색어로 검색 기록 조회하기
+    boolean existsByUser_Id(Long id);
+
     Optional<UserSearchHistory> findByUser_IdAndQuery(Long userId, String query);
     //검색 시각 이전의 검색 기록 삭제하기
     void deleteBySearchedAtBefore(Instant searchedAt);

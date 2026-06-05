@@ -37,11 +37,15 @@ class UserPlanRepositoryTest {
     private UserPlan plan1;
     private UserPlan plan2;
 
+    // 데이터 생성 기준 시각
+    private static final Instant BASE_TIME = Instant.parse("2026-03-11T10:00:00Z");
+    // 실제 쿼리 시각 - 데이터 생성 후 몇 분이 지난 시점을 현실적으로 반영
+    private static final Instant QUERY_TIME = BASE_TIME.plus(5, ChronoUnit.MINUTES);
+
     @BeforeEach
     void setUp() {
         // given: 테스트용 사용자 데이터 준비
-        // 안정적인 테스트를 위한 고정된 now값 사용
-        Instant now = Instant.parse("2026-03-11T10:00:00Z");
+        Instant now = BASE_TIME;
 
         testUser = UserEntity.builder()
                 .userEmail("test@test.com")
@@ -63,6 +67,8 @@ class UserPlanRepositoryTest {
                 .startAt(now.minus(10, ChronoUnit.DAYS))
                 .expireAt(now.plus(20, ChronoUnit.DAYS))
                 .createdAt(now.minus(10, ChronoUnit.DAYS))
+                .transactionId("tx_plan1")   // 추가
+                .store("PLAY_STORE")          // 추가
                 .build();
 
         plan2 = UserPlan.builder()
@@ -73,6 +79,8 @@ class UserPlanRepositoryTest {
                 .startAt(now.minus(400, ChronoUnit.DAYS))
                 .expireAt(now.minus(35, ChronoUnit.DAYS))
                 .createdAt(now.minus(400, ChronoUnit.DAYS))
+                .transactionId("tx_plan2")   // 추가
+                .store("APP_STORE")           // 추가
                 .build();
 
         entityManager.persist(plan1);
@@ -97,12 +105,10 @@ class UserPlanRepositoryTest {
     @DisplayName("현재 유효한 플랜 조회하기")
     @Test
     void findTopByUser_IdAndStartAtLessThanEqualAndExpireAtAfterAndStatusInOrderByExpireAtDesc() {
-        //given
-        Instant now = Instant.now();
         //when
         Optional<UserPlan> result = userPlanRepository
                 .findTopByUser_IdAndStartAtLessThanEqualAndExpireAtAfterAndStatusInOrderByExpireAtDesc(
-                        testUser.getId(), now, now, List.of(PlanStatus.ACTIVE, PlanStatus.CANCELLED)
+                        testUser.getId(), QUERY_TIME, QUERY_TIME, List.of(PlanStatus.ACTIVE, PlanStatus.CANCELLED)
                 );
         //then
         assertThat(result).isPresent();
@@ -122,6 +128,8 @@ class UserPlanRepositoryTest {
                 .status(PlanStatus.ACTIVE)
                 .startAt(currentExpireAt)
                 .expireAt(currentExpireAt.plus(30, ChronoUnit.DAYS))
+                .transactionId("tx_future")  // 추가
+                .store("PLAY_STORE")          // 추가
                 .build();
         entityManager.persist(futurePlan);
         entityManager.flush();
@@ -139,7 +147,7 @@ class UserPlanRepositoryTest {
     void existsByUser_IdAndStartAtGreaterThanEqualAndStatus() {
         //given
         Long userId = testUser.getId();
-        Instant currentExpireAt = Instant.now().plus(20, ChronoUnit.DAYS);
+        Instant currentExpireAt = QUERY_TIME.plus(20, ChronoUnit.DAYS);
         //when
         boolean exists = userPlanRepository.existsByUser_IdAndStartAtGreaterThanEqualAndStatus(
                 userId, currentExpireAt, PlanStatus.ACTIVE
@@ -151,11 +159,9 @@ class UserPlanRepositoryTest {
     @DisplayName("만료된 플랜 조회하기")
     @Test
     void findAllByExpireAtBeforeAndStatusIn() {
-        //given
-        Instant now = Instant.now();
         //when
         List<UserPlan> result = userPlanRepository.findAllByExpireAtBeforeAndStatusIn(
-                now, List.of(PlanStatus.ACTIVE)
+                QUERY_TIME, List.of(PlanStatus.ACTIVE)
         );
         //then
         assertThat(result).isEmpty();
@@ -164,11 +170,9 @@ class UserPlanRepositoryTest {
     @DisplayName("특정 사용자들의 활성 플랜 조회하기")
     @Test
     void findAllActivePlansForUsers() {
-        //given
-        Instant now = Instant.now();
         //when
         List<UserPlan> result = userPlanRepository.findAllActivePlansForUsers(
-                List.of(testUser.getId()), now, PlanStatus.ACTIVE
+                List.of(testUser.getId()), QUERY_TIME, PlanStatus.ACTIVE
         );
         //then
         assertThat(result).hasSize(1);
@@ -195,5 +199,32 @@ class UserPlanRepositoryTest {
         );
         //then
         assertThat(hasPaid).isTrue();
+    }
+
+
+    @DisplayName("만료되지 않은 ACTIVE 플랜 전체 조회")
+    @Test
+    void findAllByUser_IdAndExpireAtAfterAndStatus() {
+        //when
+        List<UserPlan> result = userPlanRepository.findAllByUser_IdAndExpireAtAfterAndStatus(
+                testUser.getId(), QUERY_TIME, PlanStatus.ACTIVE
+        );
+        //then
+        // plan1(ACTIVE, 만료 안됨)만 조회, plan2(EXPIRED)는 제외
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getTransactionId()).isEqualTo("tx_plan1");
+    }
+
+    @DisplayName("transactionId와 상태로 플랜 조회하기")
+    @Test
+    void findTopByUser_IdAndTransactionIdAndStatusInOrderByExpireAtDesc() {
+        //when
+        Optional<UserPlan> result = userPlanRepository.findTopByUser_IdAndTransactionIdAndStatusInOrderByExpireAtDesc(
+                testUser.getId(), "tx_plan2", List.of(PlanStatus.ACTIVE, PlanStatus.CANCELLED, PlanStatus.EXPIRED)
+        );
+        //then
+        assertThat(result).isPresent();
+        assertThat(result.get().getTransactionId()).isEqualTo("tx_plan2");
+        assertThat(result.get().getStatus()).isEqualTo(PlanStatus.EXPIRED);
     }
 }

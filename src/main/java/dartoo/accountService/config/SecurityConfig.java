@@ -5,8 +5,10 @@ import dartoo.accountService.security.oauth.CustomOAuth2UserService;
 import dartoo.accountService.security.oauth.OAuthLoginFailureHandler;
 import dartoo.accountService.security.oauth.OAuthLoginSuccessHandler;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -20,6 +22,12 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @EnableMethodSecurity
 @Configuration
@@ -28,12 +36,28 @@ public class SecurityConfig {
 
     private final JwtAuthenticationEntryPoint jwtEntryPoint;
 
+    @Value("${cors.allowed-origins}")
+    private List<String> allowedOrigins;
+
     @Bean
     public PasswordEncoder bCryptPasswordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
+    @Order(1)
+    public SecurityFilterChain internalApiFilterChain(HttpSecurity http, ServiceApiKeyFilter serviceApiKeyFilter) throws Exception {
+        http
+            .securityMatcher("/internal/api/**")
+            .csrf(AbstractHttpConfigurer::disable)
+            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(reg -> reg.anyRequest().permitAll())
+            .addFilterBefore(serviceApiKeyFilter, UsernamePasswordAuthenticationFilter.class);
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtDecoder decoder,
                                             JwtAuthenticationConverter conv, CustomOAuth2UserService customOAuth2UserService,
                                             OAuthLoginSuccessHandler oAuthLoginSuccessHandler,
@@ -43,7 +67,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/users/**").authenticated() //회원 정보 관련이니까
                 .requestMatchers("/api/auth/**").permitAll() //로그인 관련이니까.
                 .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll() //oauth2 로그인 관련
+                .requestMatchers("/oauth/callback", "/login", "/settings/account").permitAll() //OAuth 완료 후 리다이렉트 되는 프론트 라우트 — 배포 시에는 프론트(WebView)에서 처리하는 경로이나, 로컬에서는 백엔드가 받기 때문에 필터 통과 허용
                 .requestMatchers("/actuator/health/**").permitAll() //헬스체크 관련
+                .requestMatchers("/api/webhooks/**").permitAll() // RevenueCat Webhook은 JWT가 없으므로.
                 .anyRequest().authenticated());
         http.sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.csrf(AbstractHttpConfigurer::disable);
@@ -52,7 +78,7 @@ public class SecurityConfig {
 
         //JWT 인증 실패 예외 처리
         http.exceptionHandling(ex -> ex.authenticationEntryPoint(jwtEntryPoint));
-        http.cors(Customizer.withDefaults()); //나중에 추가 설정
+        http.cors(Customizer.withDefaults());
 
         // OAuth2 Login 설정 (google / naver / kakao)
         // - /oauth2/authorization/{provider} 진입 → provider 로그인 페이지로 리다이렉트
@@ -64,9 +90,22 @@ public class SecurityConfig {
                         .userService(customOAuth2UserService)   // provider별(profile 구조) userInfo → 우리 도메인 유저 정보로 매핑
                 )
                 .successHandler(oAuthLoginSuccessHandler)       // 소셜 로그인 성공 시 → 우리 JWT 발급
-                .failureHandler(oAuthLoginFailureHandler)       // 실패 처리 → 401 JSON 응답
+                .failureHandler(oAuthLoginFailureHandler)       // 실패 처리 → /login?error={errorCode} 리다이렉트
         );
         return http.build();
+    }
+
+    //CORS 관련 메서드
+    @Bean
+    CorsConfigurationSource corsConfigurationSource(){
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(allowedOrigins);
+        config.setAllowedMethods(List.of("GET","POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 
     //클라이언트가 액세스 토큰을 들고 왔을 때 해독
@@ -95,7 +134,7 @@ public class SecurityConfig {
         return cfg.getAuthenticationManager();
     }
 
-    //프런트엔드 서버 주소 확정시 활성화
+    //프런트엔드 서버 주소 확정시 활성화 -> WebMvcConfigurer 방식은 사용하지 않음
 //    @Bean
 //    public WebMvcConfigurer corsConfigurer() {
 //        return new WebMvcConfigurer() {
@@ -108,6 +147,20 @@ public class SecurityConfig {
 //            }
 //        };
 //    }
+
+    /** WebMvcConfigurer 방식을 사용하지 않는 이유
+     * HTTP 요청 -> Spring Security Filter Chain -> DispatcherServlet -> Spring MVC -> Controller
+     * WebMvcConfigurer 레이어는 MVC 레이어에서 작동하고, CorsConfigurationSource는 SecurityFilter 레이어에서 작동한다.
+     * JWT 인증 실패나 허용되지 않은 요청은 Security Filter에서 MVC 레이어에 도달하기도 전에 차단된다.
+     *
+     * 브라우저는 본 API 요청을 보내기 전에 OPTIONS 메서드로 먼저 보내도 되는지 허락을 구한다.
+     * 이 사전 요청(프리플라이트)에는 Authorization 헤더가 없기 때문에, WebMvcConfigurer 방식에서는
+     * Security Filter의 JWT 인증 필터에서 401로 차단되어 MVC 레이어까지 도달하지 못한다.
+     *
+     * CorsConfigurationSource 빈을 등록하면 Security Filter Chain 내부에 CorsFilter가 추가되며,
+     * JWT 인증 필터보다 먼저 실행되어 프리플라이트 요청을 정상적으로 처리한다.
+     * http.cors(Customizer.withDefaults())는 컨텍스트에서 CorsConfigurationSource 빈을 자동으로 찾아 적용한다.
+     */
 
 }
 /**

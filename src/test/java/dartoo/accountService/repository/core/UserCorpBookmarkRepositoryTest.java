@@ -47,13 +47,13 @@ class UserCorpBookmarkRepositoryTest {
 
         bookmark1 = UserCorpBookmark.builder()
                 .user(testUser)
-                .corpId("CORP001")
+                .corpCode("CORP001")
                 .corpName("테스트 회사1")
                 .build();
 
         bookmark2 = UserCorpBookmark.builder()
                 .user(testUser)
-                .corpId("CORP002")
+                .corpCode("CORP002")
                 .corpName("테스트 회사2")
                 .build();
 
@@ -70,15 +70,15 @@ class UserCorpBookmarkRepositoryTest {
         List<UserCorpBookmark> result = userCorpBookmarkRepository.findAllByUser_IdOrderByCreatedAtDesc(testUser.getId());
         //then
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).getCorpId()).isIn("CORP001", "CORP002");
+        assertThat(result.get(0).getCorpCode()).isIn("CORP001", "CORP002");
     }
 
     @DisplayName("사용자 ID와 기업 ID로 북마크 존재 여부 확인")
     @Test
-    void existsByUser_IdAndCorpId() {
+    void existsByUser_IdAndCorpCode() {
         //when
-        boolean exists = userCorpBookmarkRepository.existsByUser_IdAndCorpId(testUser.getId(), "CORP001");
-        boolean notExists = userCorpBookmarkRepository.existsByUser_IdAndCorpId(testUser.getId(), "CORP999");
+        boolean exists = userCorpBookmarkRepository.existsByUser_IdAndCorpCode(testUser.getId(), "CORP001");
+        boolean notExists = userCorpBookmarkRepository.existsByUser_IdAndCorpCode(testUser.getId(), "CORP999");
         //then
         assertThat(exists).isTrue();
         assertThat(notExists).isFalse();
@@ -86,14 +86,14 @@ class UserCorpBookmarkRepositoryTest {
 
     @DisplayName("사용자 ID와 기업 ID로 북마크 삭제하기")
     @Test
-    void deleteByUser_IdAndCorpId() {
+    void deleteByUser_IdAndCorpCode() {
         //given
-        assertThat(userCorpBookmarkRepository.existsByUser_IdAndCorpId(testUser.getId(), "CORP001")).isTrue();
+        assertThat(userCorpBookmarkRepository.existsByUser_IdAndCorpCode(testUser.getId(), "CORP001")).isTrue();
         //when
-        long deleted = userCorpBookmarkRepository.deleteByUser_IdAndCorpId(testUser.getId(), "CORP001");
+        long deleted = userCorpBookmarkRepository.deleteByUser_IdAndCorpCode(testUser.getId(), "CORP001");
         //then
         assertThat(deleted).isEqualTo(1);
-        assertThat(userCorpBookmarkRepository.existsByUser_IdAndCorpId(testUser.getId(), "CORP001")).isFalse();
+        assertThat(userCorpBookmarkRepository.existsByUser_IdAndCorpCode(testUser.getId(), "CORP001")).isFalse();
     }
 
     @DisplayName("사용자 ID로 모든 북마크 삭제하기")

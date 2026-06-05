@@ -3,9 +3,7 @@ package dartoo.accountService.config;
 import dartoo.accountService.domain.*;
 import dartoo.accountService.domain.enums.*;
 import dartoo.accountService.dto.core.enums.PlanDuration;
-import dartoo.accountService.repository.UserAgreedRepository;
 import dartoo.accountService.repository.UserEntityRepository;
-import dartoo.accountService.repository.UserPreferenceRepository;
 import dartoo.accountService.repository.core.UserCorpBookmarkRepository;
 import dartoo.accountService.repository.core.UserNotificationRepository;
 import dartoo.accountService.repository.core.UserPlanRepository;
@@ -41,8 +39,7 @@ public class LocalSeedConfig {
 
     //repository 목록
     private final UserEntityRepository userEntityRepository;
-    private final UserPreferenceRepository userPreferenceRepository;
-    private final UserAgreedRepository userAgreedRepository;
+
     private final UserPlanRepository userPlanRepository;
     private final UserCorpBookmarkRepository userCorpBookmarkRepository;
     private final UserNotificationRepository userNotificationRepository;
@@ -96,6 +93,7 @@ public class LocalSeedConfig {
     }
 
     private void setSearchHistory(UserEntity user) {
+        if (userSearchHistoryRepository.existsByUser_Id(user.getId())) return;
         UserSearchHistory searchHistory = UserSearchHistory.builder()
                 .user(user)
                 .searchedAt(Instant.now().minusSeconds(3600*24*3))
@@ -112,10 +110,12 @@ public class LocalSeedConfig {
     }
 
     private void setNotification(UserEntity user) {
+        if (userNotificationRepository.existsByUser_Id(user.getId())) return;
         UserNotification notification = UserNotification.builder()
                 .user(user)
                 .title("멤버십 결제 만료")
-                .content("35일 전에 결제한 멤버십 결제가 만료되었습니다.")
+                .corpName("(시드)")
+                .eventType(NotificationType.DISCLOSURE_UPDATE)
                 .createdAt(Instant.now().minusSeconds(3600*24*5))
                 .status(NotificationStatus.UNREAD)
                 .readAt(null)
@@ -124,16 +124,19 @@ public class LocalSeedConfig {
     }
 
     private void setBookmark(UserEntity user) {
+        if (userCorpBookmarkRepository.existsByUser_Id(user.getId())) return;
         UserCorpBookmark bookmark = UserCorpBookmark.builder()
                 .user(user)
-                .corpId("35161115")
+                .corpCode("00126380")
                 .corpName("삼성전자")
+                .displayOrder(0)
                 .createdAt(Instant.now().minusSeconds(3600*24*3))
                 .build();
         UserCorpBookmark bookmark2 = UserCorpBookmark.builder()
                 .user(user)
-                .corpId("64889445")
+                .corpCode("00164744")
                 .corpName("SK하이닉스")
+                .displayOrder(1)
                 .createdAt(Instant.now().minusSeconds(3600*24*2))
                 .build();
         userCorpBookmarkRepository.save(bookmark);
@@ -141,6 +144,7 @@ public class LocalSeedConfig {
     }
 
     private void setPlanHistory(UserEntity user) {
+        if (userPlanRepository.existsByUser_Id(user.getId())) return;
         UserPlan plan;
         if(user.getPlan()==PlanType.FREE){
             plan = UserPlan.builder()
@@ -150,6 +154,7 @@ public class LocalSeedConfig {
                     .duration(PlanDuration.MONTHLY)
                     .startAt(Instant.now().minusSeconds(3600*24*35))
                     .expireAt(Instant.now().minusSeconds(3600*24*5))
+                    .transactionId("sample1")
                     .build();
         }
         else{
@@ -160,6 +165,7 @@ public class LocalSeedConfig {
                     .duration(PlanDuration.MONTHLY)
                     .startAt(Instant.now().minusSeconds(3600*24*5))
                     .expireAt(Instant.now().plusSeconds(3600*24*25))
+                    .transactionId("sample2")
                     .build();
         }
         userPlanRepository.save(plan);
@@ -206,7 +212,6 @@ public class LocalSeedConfig {
                 .marketingAgreed(false)
                 .build();
         user.attachAgreed(agreed);
-        userAgreedRepository.save(agreed);
     }
 
     private void setPreference(UserEntity user) {
@@ -226,7 +231,6 @@ public class LocalSeedConfig {
                     .build();
         }
         user.attachPreference(pref);
-        userPreferenceRepository.save(pref);
     }
 
 }

@@ -2,25 +2,23 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: dt-user-config
-  namespace: dartoo
   labels:
     app: dt-user
-    app.kubernetes.io/managed-by: kubectl
+    app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/part-of: dartoo
     app.kubernetes.io/component: backend
     app.kubernetes.io/name: dt-user
-    app.kubernetes.io/instance: dt-user-dartoo
 data:
   SERVER_PORT: "8080"
-  # spring 관련 변수
   SPRING_APPLICATION_NAME: dt-service-user
   SPRING_PROFILES_ACTIVE: product
   SPRING_JPA_HIBERNATE_DDL_AUTO: update
   SPRING_SHUTDOWN_TIMEOUT: 90s
-  SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+  SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
   SPRING_JPA_HIBERNATE_TIME_ZONE: UTC
   SPRING_JACKSON_TIME_ZONE: UTC
-  DB_URL: jdbc:postgresql://db-svc:5432/dartoo
+  DB_URL: jdbc:postgresql://db-svc:5432/dartoo?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
   HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
+  NOTIFICATION_SERVICE_BASE_URL: "http://dt-notification:9803"
   SECURITY_LOG_LEVEL: "INFO"
   APP_LOG_LEVEL: "INFO"

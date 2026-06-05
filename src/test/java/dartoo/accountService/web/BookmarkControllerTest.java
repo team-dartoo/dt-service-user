@@ -59,13 +59,13 @@ class BookmarkControllerTest {
     void getBookmarkListSuccess() throws Exception {
         //given
         BookmarkResponse bookmark1 = BookmarkResponse.builder()
-                .corpId("00001")
+                .corpCode("00001")
                 .corpName("Test Corp 1")
                 .createdAt(Instant.parse("2026-03-15T00:00:00Z"))
                 .build();
 
         BookmarkResponse bookmark2 = BookmarkResponse.builder()
-                .corpId("00002")
+                .corpCode("00002")
                 .corpName("Test Corp 2")
                 .createdAt(Instant.parse("2026-03-16T00:00:00Z"))
                 .build();
@@ -79,10 +79,10 @@ class BookmarkControllerTest {
         mockMvc.perform(get("/api/users/bookmarks"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.corpList").isArray())
-                .andExpect(jsonPath("$.corpList[0].corpId").value("00001"))
+                .andExpect(jsonPath("$.corpList[0].corpCode").value("00001"))
                 .andExpect(jsonPath("$.corpList[0].corpName").value("Test Corp 1"))
                 .andExpect(jsonPath("$.corpList[0].createdAt").value("2026-03-15T00:00:00Z"))
-                .andExpect(jsonPath("$.corpList[1].corpId").value("00002"))
+                .andExpect(jsonPath("$.corpList[1].corpCode").value("00002"))
                 .andExpect(jsonPath("$.corpList[1].corpName").value("Test Corp 2"))
                 .andExpect(jsonPath("$.corpList[1].createdAt").value("2026-03-16T00:00:00Z"));
     }
@@ -108,11 +108,11 @@ class BookmarkControllerTest {
     void addBookmarkSuccess() throws Exception {
         //given
         BookmarkCreateRequest request = new BookmarkCreateRequest();
-        request.setCorpId("00001");
+        request.setCorpCode("00001");
         request.setCorpName("Test Corp");
 
         BookmarkResponse response = BookmarkResponse.builder()
-                .corpId("00001")
+                .corpCode("00001")
                 .corpName("Test Corp")
                 .createdAt(Instant.parse("2026-03-15T00:00:00Z"))
                 .build();
@@ -123,7 +123,7 @@ class BookmarkControllerTest {
                         .contentType(APPLICATION_JSON_VALUE)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.corpId").value("00001"))
+                .andExpect(jsonPath("$.corpCode").value("00001"))
                 .andExpect(jsonPath("$.corpName").value("Test Corp"))
                 .andExpect(jsonPath("$.createdAt").value("2026-03-15T00:00:00Z"));
     }
@@ -133,7 +133,7 @@ class BookmarkControllerTest {
     void addBookmark_validationError() throws Exception {
         //given
         BookmarkCreateRequest request = new BookmarkCreateRequest();
-        request.setCorpId("");  // @NotBlank 위반
+        request.setCorpCode("");  // @NotBlank 위반
         request.setCorpName("Test Corp");
 
         //when, then
@@ -168,7 +168,7 @@ class BookmarkControllerTest {
     void addBookmarkDuplicate() throws Exception {
         //given
         BookmarkCreateRequest request = new BookmarkCreateRequest();
-        request.setCorpId("00001");
+        request.setCorpCode("00001");
         request.setCorpName("Test Corp");
 
         given(bookmarkService.addCorpBookmark(any(BookmarkCreateRequest.class)))
@@ -188,7 +188,7 @@ class BookmarkControllerTest {
     void addBookmarkUserNotFound() throws Exception {
         //given
         BookmarkCreateRequest request = new BookmarkCreateRequest();
-        request.setCorpId("00001");
+        request.setCorpCode("00001");
         request.setCorpName("Test Corp");
 
         given(bookmarkService.addCorpBookmark(any(BookmarkCreateRequest.class)))
@@ -204,31 +204,31 @@ class BookmarkControllerTest {
     }
 
     @Test
-    @DisplayName("DELETE /api/users/bookmarks/{corpId} - 북마크 삭제 성공시 응답 코드 204 반환")
+    @DisplayName("DELETE /api/users/bookmarks/{corpCode} - 북마크 삭제 성공시 응답 코드 204 반환")
     void deleteBookmarkSuccess() throws Exception {
         //given
-        String corpId = "00001";
+        String corpCode = "00001";
 
         //deleteBookmark가 void를 반환하는 메서드라 형식이 다름
-        willDoNothing().given(bookmarkService).deleteBookmark(eq(corpId));
+        willDoNothing().given(bookmarkService).deleteBookmark(eq(corpCode));
         //when, then
-        mockMvc.perform(delete("/api/users/bookmarks/{corpId}", corpId))
+        mockMvc.perform(delete("/api/users/bookmarks/{corpCode}", corpCode))
                 .andExpect(status().isNoContent());
 
-        verify(bookmarkService, times(1)).deleteBookmark(eq(corpId));
+        verify(bookmarkService, times(1)).deleteBookmark(eq(corpCode));
     }
 
     @Test
-    @DisplayName("DELETE /api/users/bookmarks/{corpId} - 존재하지 않는 북마크 삭제 시도시 응답 코드 404 반환")
+    @DisplayName("DELETE /api/users/bookmarks/{corpCode} - 존재하지 않는 북마크 삭제 시도시 응답 코드 404 반환")
     void deleteBookmarkNotFound() throws Exception {
         //given
-        String corpId = "99999";
+        String corpCode = "99999";
 
         //deleteBookmark가 void를 반환하는 메서드라 형식이 다름
         willThrow(new ApiException(BOOKMARK_NOT_FOUND))
-                .given(bookmarkService).deleteBookmark(eq(corpId));
+                .given(bookmarkService).deleteBookmark(eq(corpCode));
         //when, then
-        mockMvc.perform(delete("/api/users/bookmarks/{corpId}", corpId))
+        mockMvc.perform(delete("/api/users/bookmarks/{corpCode}", corpCode))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("BOOKMARK_NOT_FOUND"))
                 .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
@@ -236,15 +236,15 @@ class BookmarkControllerTest {
     }
 
     @Test
-    @DisplayName("DELETE /api/users/bookmarks/{corpId} - 사용자가 없을 경우 404 응답을 반환")
+    @DisplayName("DELETE /api/users/bookmarks/{corpCode} - 사용자가 없을 경우 404 응답을 반환")
     void deleteBookmarkUserNotFound() throws Exception {
         //given
-        String corpId = "00001";
+        String corpCode = "00001";
 
         willThrow(new ApiException(USER_NOT_FOUND))
-                .given(bookmarkService).deleteBookmark(eq(corpId));
+                .given(bookmarkService).deleteBookmark(eq(corpCode));
         //when, then
-        mockMvc.perform(delete("/api/users/bookmarks/{corpId}", corpId))
+        mockMvc.perform(delete("/api/users/bookmarks/{corpCode}", corpCode))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("USER_NOT_FOUND"))
                 .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))

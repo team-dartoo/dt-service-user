@@ -4,6 +4,7 @@ import dartoo.accountService.domain.UserEntity;
 import dartoo.accountService.domain.UserNotification;
 import dartoo.accountService.domain.enums.Gender;
 import dartoo.accountService.domain.enums.NotificationStatus;
+import dartoo.accountService.domain.enums.NotificationType;
 import dartoo.accountService.domain.enums.Role;
 import dartoo.accountService.repository.UserEntityRepository;
 import jakarta.persistence.EntityManager;
@@ -56,7 +57,7 @@ class UserNotificationRepositoryTest {
         notification1 = UserNotification.builder()
                 .user(testUser)
                 .title("알림1")
-                .content("내용1")
+                .eventType(NotificationType.DISCLOSURE_UPDATE)
                 .status(NotificationStatus.UNREAD)
                 .createdAt(now.minus(7, ChronoUnit.DAYS))
                 .build();
@@ -64,7 +65,7 @@ class UserNotificationRepositoryTest {
         notification2 = UserNotification.builder()
                 .user(testUser)
                 .title("알림2")
-                .content("내용2")
+                .eventType(NotificationType.AI_SUMMARY)
                 .status(NotificationStatus.READ)
                 .createdAt(now.minus(5, ChronoUnit.DAYS))
                 .build();
@@ -72,7 +73,7 @@ class UserNotificationRepositoryTest {
         notification3 = UserNotification.builder()
                 .user(testUser)
                 .title("알림3")
-                .content("내용3")
+                .eventType(NotificationType.DISCLOSURE_UPDATE)
                 .status(NotificationStatus.DELETED)
                 .createdAt(now.minus(9, ChronoUnit.DAYS))
                 .build();

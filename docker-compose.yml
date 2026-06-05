@@ -18,23 +18,22 @@ services:
     #   JWT_REFRESH_SECRET: ptmltkwret5325tgwteu65ObtoJIHoj1
     #   JWT_REFRESH_PEPPER: u3i2q89prawei2u9x8nDSKJo 
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     restart: on-failure
     networks:
       - dartoo-network
-  mysql:
-    image: mysql:8.0.23
-    container_name: mysql-dartoo
+  postgres:
+    image: postgres:16
+    container_name: postgres-dartoo
     ports:
-      - "3306:3306"
+      - "5432:5432"
     environment:
-      MYSQL_ROOT_PASSWORD: 1234
-      MYSQL_DATABASE: Dartoo
-      MYSQL_USER: manager_dartoo
-      MYSQL_PASSWORD: 7765
+      POSTGRES_DB: Dartoo
+      POSTGRES_USER: manager_dartoo
+      POSTGRES_PASSWORD: 7765
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      test: ["CMD-SHELL", "pg_isready -U manager_dartoo -d Dartoo"]
       interval: 5s       # 헬스체크 주기 (5초) [5]
       timeout: 2s        # 헬스체크 시간 초과 (2초)
       retries: 5         # 실패 횟수 허용 (5번) [5]
@@ -45,5 +44,5 @@ services:
 
 networks:
   dartoo-network:
-    driver: bridge
+    external: true
     name: dartoo-network
