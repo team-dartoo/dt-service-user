@@ -1,0 +1,30 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: dt-user-route
+  labels:
+    app: dt-user
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/part-of: dartoo
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/name: dt-user
+spec:
+  parentRefs:
+  - name: envoy-gateway
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/auth/
+    - path:
+        type: PathPrefix
+        value: /api/users
+    - path:
+        type: PathPrefix
+        value: /oauth2
+    - path:
+        type: PathPrefix
+        value: /login
+    backendRefs:
+    - name: dt-user-svc
+      port: 8080
