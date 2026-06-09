@@ -1,0 +1,30 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: dt-user-cors-policy
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/part-of: dartoo
+    app.kubernetes.io/name: dt-user
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: dt-user-route
+  cors:
+    allowOrigins:
+    - "https://dartoo.co.kr"
+    - "https://www.dartoo.co.kr"
+    allowMethods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+    - PATCH
+    allowHeaders:
+    - Authorization
+    - Content-Type
+    - X-Device-Id
+    allowCredentials: true
+    maxAge: "24h"

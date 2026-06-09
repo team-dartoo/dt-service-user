@@ -71,3 +71,32 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+  deploy:
+    runs-on: [self-hosted, rpi, k8s-test]
+    needs: build-and-push
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create GHCR Secret
+        run: |
+          kubectl create secret docker-registry ghcr-secret \
+            --docker-server=ghcr.io \
+            --docker-username=${{ github.actor }} \
+            --docker-password=${{ secrets.GHCR_READ_SECRET }} \
+            -n dartoo \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy to test environment
+        run: |
+          cd k8s/overlays/prod
+          kustomize edit set image \
+            ghcr.io/team-dartoo/dt-service-user=ghcr.io/team-dartoo/dt-service-user:sha-$(echo ${{ github.sha }} | cut -c1-7)
+          kubectl apply -k .
+
+      - name: Verify rollout
+        run: kubectl rollout status deployment/dt-user -n dartoo --timeout=300s
+

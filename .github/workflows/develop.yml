@@ -81,6 +81,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Create GHCR Secret
+        run: |
+          kubectl create secret docker-registry ghcr-secret \
+            --docker-server=ghcr.io \
+            --docker-username=${{ github.actor }} \
+            --docker-password=${{ secrets.GHCR_READ_SECRET }} \
+            -n dt-test \
+            --dry-run=client -o yaml | kubectl apply -f -
+              
       - name: Deploy to test environment
         run: |
           cd k8s/overlays/test

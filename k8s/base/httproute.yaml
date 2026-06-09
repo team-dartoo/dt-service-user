@@ -19,6 +19,12 @@ spec:
     - path:
         type: PathPrefix
         value: /api/users
+    - path:
+        type: PathPrefix
+        value: /oauth2
+    - path:
+        type: PathPrefix
+        value: /login
     backendRefs:
     - name: dt-user-svc
       port: 8080
