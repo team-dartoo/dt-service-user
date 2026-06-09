@@ -8,10 +8,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 public interface UserPlanRepository extends JpaRepository<UserPlan,Long> {
+    boolean existsByUser_Id(Long id);
+
     List<UserPlan> findAllByUser_IdOrderByStartAtDesc(Long id);
 
 //    //현재 구독 이력 중 미래 포함 가장 최신 구독을 찾는다.
@@ -32,8 +35,10 @@ public interface UserPlanRepository extends JpaRepository<UserPlan,Long> {
             PlanStatus status
     );
 
+    //미래 연장분 플랜 존재 여부 확인하기
     boolean existsByUser_IdAndStartAtGreaterThanEqualAndStatus(Long id, Instant currentExpireAt, PlanStatus planStatus);
 
+    //만료된 플랜 조회하기
     List<UserPlan> findAllByExpireAtBeforeAndStatusIn(Instant now, List<PlanStatus> active);
 
     @Query("""
@@ -45,11 +50,25 @@ public interface UserPlanRepository extends JpaRepository<UserPlan,Long> {
               and up.expireAt > :now
               and up.status = :status
             """)
+    //특정 사용자들의 활성 플랜 조회하기
     List<UserPlan> findAllActivePlansForUsers(@Param("userIds") List<Long> userIds,
                                               @Param("now") Instant now,
                                               @Param("status") PlanStatus status);
 
+    //사용자가 특정 기간의 플랜을 가지고 있는지 확인하기
     boolean existsByUser_IdAndDuration(Long id, PlanDuration duration);
 
-    boolean existsByUser_IdAndDurationIn(Long id, List<PlanDuration> monthly);
+    //사용자가 특정 기간들 중 하나의 플랜을 가지고 있는지 확인하기
+    boolean existsByUser_IdAndDurationIn(Long id, List<PlanDuration> durations);
+
+    //CANCEL 처리용. 만료되지 않은 ACTIVE 플랜 전체 조회.
+    //startAt >  now → REFUNDED  (미시작 연장분, 환불 대상)
+    //호출 후에는 상태가 REFUNDED로 변경되어 ACTIVE 조회 불가
+    List<UserPlan> findAllByUser_IdAndExpireAtAfterAndStatus(Long userId, Instant now, PlanStatus planStatus);
+
+    Optional<UserPlan> findTopByUser_IdAndTransactionIdAndStatusInOrderByExpireAtDesc(
+            Long userId,
+            String transactionId,
+            List<PlanStatus> statuses
+    );
 }

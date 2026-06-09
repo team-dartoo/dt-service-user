@@ -4,9 +4,12 @@ import dartoo.accountService.domain.enums.PlanType;
 import dartoo.accountService.dto.core.enums.PlanAction;
 import dartoo.accountService.dto.core.enums.PlanDuration;
 import jakarta.validation.constraints.NotNull;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@Builder
 public class PlanUpdateRequest {
     @NotNull(message = "플랜 행위를 입력해주세요.")
     private PlanAction action;

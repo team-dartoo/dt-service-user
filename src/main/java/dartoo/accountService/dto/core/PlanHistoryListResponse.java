@@ -8,5 +8,5 @@ import java.util.List;
 @Data
 @Builder
 public class PlanHistoryListResponse {
-    private List<PlanHistoryResponse> planHisotryList;
+    private List<PlanHistoryResponse> planHistoryList;
 }

@@ -19,15 +19,13 @@ public class UserRequestDto {
     private String userEmail;
 
     @Past(message = "생일은 과거 날짜여야 합니다", groups = {addGroup.class, updateGroup.class})
-    @NotNull(message = "생일은 필수 항목입니다", groups = {addGroup.class, updateGroup.class})
     private LocalDate birthday;
 
-    @NotBlank(groups = {addGroup.class}) @Size(min = 8, groups = {addGroup.class})
+    @NotBlank(groups = {addGroup.class}) @Size(min = 8, groups = {addGroup.class}, message = "비밀번호는 최소 8자 이상이어야 합니다.")
     private String password;
 
     @NotBlank(groups = {addGroup.class, updateGroup.class})
     private String nickname;
 
-    @NotNull(groups = {addGroup.class, updateGroup.class})
     private Gender gender;
 }

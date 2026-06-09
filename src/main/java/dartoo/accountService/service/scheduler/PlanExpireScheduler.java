@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 //User 테이블과 UserPlan 테이블에 있는 정보를 자동으로 업데이트
+//RevenueCat이 Webhook으로 만료를 보내주긴 하지만, 백업 용으로 남겨둠.
 @Slf4j
 @Component
 @RequiredArgsConstructor

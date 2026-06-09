@@ -7,6 +7,8 @@ build/
 .env
 .env-legacy
 .env-product
+docs
+
 #application.yml
 
 ### STS ###
@@ -42,3 +44,5 @@ out/
 
 ### k8s ###
 **/secret.yaml
+**/ghcr-secret.yaml
+/.env.legacy

@@ -99,11 +99,15 @@ public class UserEntity {
         if (nickname != null && !nickname.isBlank()){
             this.nickname = nickname;
         }
-        if (birthday != null && birthday.isAfter(LocalDate.now())) {
-            throw new ApiException(USER_BIRTHDAY_CANNOT_BE_FUTURE);
+        if (birthday != null) {
+            if (birthday.isAfter(LocalDate.now())) {
+                throw new ApiException(USER_BIRTHDAY_CANNOT_BE_FUTURE);
+            }
+            this.birthday = birthday;
         }
-        this.birthday = birthday;
-        this.gender = gender;
+        if (gender != null) {
+            this.gender = gender;
+        }
     }
 
     public void attachPreference(UserPreference pref) {

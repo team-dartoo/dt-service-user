@@ -1,6 +1,8 @@
 package dartoo.accountService.domain;
 
+import dartoo.accountService.domain.converter.StringListJsonConverter;
 import dartoo.accountService.domain.enums.NotificationStatus;
+import dartoo.accountService.domain.enums.NotificationType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,6 +12,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
+import java.util.List;
 
 @Getter
 @AllArgsConstructor
@@ -34,8 +37,22 @@ public class UserNotification {
     @Column(nullable = false)
     private String title;
 
-    @Column(nullable = false)
-    private String content;
+    @Column(name = "recept_no", length = 14)
+    private String receptNo;
+
+    @Column(name = "corp_name", length = 200)
+    private String corpName;
+
+    @Column(name = "corp_code", length = 8)
+    private String corpCode;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "event_type", length = 32, nullable = false)
+    private NotificationType eventType;
+
+    @Convert(converter = StringListJsonConverter.class)
+    @Column(name = "summary_lines", columnDefinition = "TEXT")
+    private List<String> summaryLines;
 
     @Enumerated(EnumType.STRING)
     @Builder.Default
