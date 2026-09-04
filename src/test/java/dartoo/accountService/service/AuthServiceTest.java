@@ -1,12 +1,15 @@
 package dartoo.accountService.service;
 
 import dartoo.accountService.config.JwtConfig;
+import dartoo.accountService.config.TermsConfig;
 import dartoo.accountService.domain.RefreshToken;
+import dartoo.accountService.domain.UserAgreed;
 import dartoo.accountService.domain.enums.Role;
 import dartoo.accountService.domain.UserEntity;
 import dartoo.accountService.dto.account.TokenResponseDto;
 import dartoo.accountService.error.ApiException;
 import dartoo.accountService.repository.RefreshTokenRepository;
+import dartoo.accountService.repository.UserAgreedRepository;
 import dartoo.accountService.repository.UserEntityRepository;
 import io.jsonwebtoken.Jwts;
 import jakarta.servlet.http.HttpServletResponse;
@@ -37,9 +40,11 @@ public class AuthServiceTest {
 
     //가짜 객체
     @Mock JwtConfig jwtConfig;
+    @Mock TermsConfig termsConfig;
     @Mock TokenService tokenService;
     @Mock UserEntityRepository userEntityRepository;
     @Mock RefreshTokenRepository refreshTokenRepository;
+    @Mock UserAgreedRepository userAgreedRepository;
     @Mock HttpServletResponse response;
 
     //가짜 객체 주입 후 테스트
@@ -70,6 +75,7 @@ public class AuthServiceTest {
                 .password("encodedPass")
                 .nickname("테스터")
                 .role(Role.USER)
+                .emailActivated(true)
                 .build();
 
         // JwtConfig Mock 기본 설정
@@ -82,6 +88,8 @@ public class AuthServiceTest {
         lenient().when(jwtConfig.getRefreshTtlSeconds()).thenReturn(1209600L);
         lenient().when(jwtConfig.getRefreshKey()).thenReturn(testRefreshKey);
         lenient().when(jwtConfig.getRefreshPepper()).thenReturn("Refresh-Pepper-with-minimum-256-bits");
+        lenient().when(termsConfig.getTosVersion()).thenReturn("1.0.0");
+        lenient().when(termsConfig.getPrivacyVersion()).thenReturn("1.0.0");
     }
 
     @AfterEach
@@ -162,6 +170,75 @@ public class AuthServiceTest {
         ));
     }
 
+    @DisplayName("UserAgreed 버전이 최신과 다르면 requiresTermsConsent = true")
+    @Test
+    public void loginIssue_requiresTermsConsent_true_whenVersionMismatch() {
+        //given
+        String did = "test-did";
+        String accessToken = "test-access-token";
+        String refreshToken = createTestRefreshToken(testUser.getUserEmail(), did, FIXED);
+        UserAgreed oldAgreed = UserAgreed.builder()
+                .user(testUser)
+                .tosAgreed(true).tosVersion("0.0.0")
+                .privacyAgreed(true).privacyVersion("0.0.0")
+                .marketingAgreed(false)
+                .build();
+        given(userEntityRepository.findByUserEmail(testUser.getUserEmail())).willReturn(Optional.of(testUser));
+        given(tokenService.createAccessToken(testUser, FIXED)).willReturn(accessToken);
+        given(tokenService.createRefreshToken(testUser.getUserEmail(), did, FIXED)).willReturn(refreshToken);
+        given(userAgreedRepository.findById(testUser.getId())).willReturn(Optional.of(oldAgreed));
+
+        //when
+        TokenResponseDto result = authService.loginIssue(testUser.getUserEmail(), did, "agent", response);
+
+        //then
+        assertThat(result.getRequiresTermsConsent()).isTrue();
+    }
+
+    @DisplayName("UserAgreed 버전이 최신과 같으면 requiresTermsConsent = false")
+    @Test
+    public void loginIssue_requiresTermsConsent_false_whenVersionMatches() {
+        //given
+        String did = "test-did";
+        String accessToken = "test-access-token";
+        String refreshToken = createTestRefreshToken(testUser.getUserEmail(), did, FIXED);
+        UserAgreed currentAgreed = UserAgreed.builder()
+                .user(testUser)
+                .tosAgreed(true).tosVersion("1.0.0")
+                .privacyAgreed(true).privacyVersion("1.0.0")
+                .marketingAgreed(false)
+                .build();
+        given(userEntityRepository.findByUserEmail(testUser.getUserEmail())).willReturn(Optional.of(testUser));
+        given(tokenService.createAccessToken(testUser, FIXED)).willReturn(accessToken);
+        given(tokenService.createRefreshToken(testUser.getUserEmail(), did, FIXED)).willReturn(refreshToken);
+        given(userAgreedRepository.findById(testUser.getId())).willReturn(Optional.of(currentAgreed));
+
+        //when
+        TokenResponseDto result = authService.loginIssue(testUser.getUserEmail(), did, "agent", response);
+
+        //then
+        assertThat(result.getRequiresTermsConsent()).isFalse();
+    }
+
+    @DisplayName("UserAgreed가 없으면 requiresTermsConsent = true")
+    @Test
+    public void loginIssue_requiresTermsConsent_true_whenNoAgreedRecord() {
+        //given
+        String did = "test-did";
+        String accessToken = "test-access-token";
+        String refreshToken = createTestRefreshToken(testUser.getUserEmail(), did, FIXED);
+        given(userEntityRepository.findByUserEmail(testUser.getUserEmail())).willReturn(Optional.of(testUser));
+        given(tokenService.createAccessToken(testUser, FIXED)).willReturn(accessToken);
+        given(tokenService.createRefreshToken(testUser.getUserEmail(), did, FIXED)).willReturn(refreshToken);
+        given(userAgreedRepository.findById(testUser.getId())).willReturn(Optional.empty());
+
+        //when
+        TokenResponseDto result = authService.loginIssue(testUser.getUserEmail(), did, "agent", response);
+
+        //then
+        assertThat(result.getRequiresTermsConsent()).isTrue();
+    }
+
     @DisplayName("DB에서 사용자를 찾을 수 없을 시, USER_NOT_FOUND 예외를 던진다")
     @Test
     public void loginIssueFail() {
@@ -177,6 +254,28 @@ public class AuthServiceTest {
                 .hasFieldOrPropertyWithValue("errorCode", USER_NOT_FOUND);
 
         //예외가 발생했으니 토큰 생성 로직은 실행되지 않아야 한다.
+        then(tokenService).should(never()).createAccessToken(any(), any());
+    }
+
+    @DisplayName("이메일 인증이 완료되지 않은 사용자는 EMAIL_NOT_VERIFIED 예외를 던진다")
+    @Test
+    public void loginIssue_emailNotVerified() {
+        // given
+        UserEntity unverifiedUser = UserEntity.builder()
+                .userEmail("unverified@test.com")
+                .password("encodedPass")
+                .nickname("미인증")
+                .role(Role.USER)
+                .emailActivated(false)
+                .build();
+        given(userEntityRepository.findByUserEmail("unverified@test.com")).willReturn(Optional.of(unverifiedUser));
+
+        // when, then
+        assertThatThrownBy(() ->
+                authService.loginIssue("unverified@test.com", "did", "agent", response))
+                .isInstanceOf(ApiException.class)
+                .hasFieldOrPropertyWithValue("errorCode", EMAIL_NOT_VERIFIED);
+
         then(tokenService).should(never()).createAccessToken(any(), any());
     }
 

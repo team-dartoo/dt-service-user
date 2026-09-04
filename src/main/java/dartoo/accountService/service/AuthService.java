@@ -1,11 +1,14 @@
 package dartoo.accountService.service;
 
 import dartoo.accountService.config.JwtConfig;
+import dartoo.accountService.config.TermsConfig;
 import dartoo.accountService.domain.RefreshToken;
 import dartoo.accountService.domain.UserEntity;
 import dartoo.accountService.dto.account.TokenResponseDto;
 import dartoo.accountService.error.ApiException;
+import dartoo.accountService.error.ErrorCode;
 import dartoo.accountService.repository.RefreshTokenRepository;
+import dartoo.accountService.repository.UserAgreedRepository;
 import dartoo.accountService.repository.UserEntityRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -32,9 +35,11 @@ import static dartoo.accountService.error.ErrorCode.*;
 @RequiredArgsConstructor
 public class AuthService {
     private final JwtConfig cfg;
+    private final TermsConfig termsConfig;
     private final TokenService tokenService;
     private final UserEntityRepository userEntityRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final UserAgreedRepository userAgreedRepository;
 
     //자체 로그인 - AccessToken, RefreshToken 발급
     @Transactional
@@ -42,6 +47,11 @@ public class AuthService {
         Instant now = Instant.now();
 
         UserEntity user = userEntityRepository.findByUserEmail(email).orElseThrow(()->new ApiException(USER_NOT_FOUND));
+
+        //이메일 활성화 안했으면 바로 거절
+        if (!user.getEmailActivated()) {
+            throw new ApiException(ErrorCode.EMAIL_NOT_VERIFIED);
+        }
 
         //이미 만료된 RT 삭제
         refreshTokenRepository.deleteAllByUserEntityAndExpiredAtBefore(user,now);
@@ -66,8 +76,17 @@ public class AuthService {
         //httpOnly + secure 형태로 쿠키에 저장
         attachRefreshCookie(response,refreshToken,expire);
 
+        //가장 최신 버전의 약관의 동의 상태를 가지고 있는지 확인
+        boolean requiresTermsConsent = userAgreedRepository.findById(user.getId())
+                .map(agreed ->
+                        !termsConfig.getTosVersion().equals(agreed.getTosVersion()) ||
+                        !termsConfig.getPrivacyVersion().equals(agreed.getPrivacyVersion())
+                )
+                .orElse(true);
+
         return new TokenResponseDto(
-                accessToken,cfg.getAccessTtlSeconds(),refreshToken,cfg.getRefreshTtlSeconds(),user.getPasswordSet()
+                accessToken,cfg.getAccessTtlSeconds(),refreshToken,cfg.getRefreshTtlSeconds(),
+                user.getPasswordSet(), requiresTermsConsent
         );
     }
 
@@ -136,7 +155,7 @@ public class AuthService {
 
         long refreshTtlLeft = Math.max(0, newExpire.getEpochSecond() - now.getEpochSecond());
         //장기적인 관점에서는 RefreshToken을 바디에서 빼는 것이 좋다.
-        return new TokenResponseDto(newAccess,cfg.getAccessTtlSeconds(),newRefresh, refreshTtlLeft, userEntity.getPasswordSet());
+        return new TokenResponseDto(newAccess,cfg.getAccessTtlSeconds(),newRefresh, refreshTtlLeft, userEntity.getPasswordSet(), false);
     }
 
     //RefreshToken을 쿠키에 추가 - HttpOnly + Secure

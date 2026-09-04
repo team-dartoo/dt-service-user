@@ -2,6 +2,7 @@ package dartoo.accountService.security.oauth;
 
 import java.io.IOException;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
@@ -23,6 +24,9 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class OAuthLoginFailureHandler implements AuthenticationFailureHandler {
 
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
+
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
         log.warn("Oauth login failed: message={}, path={}", exception.getMessage(), request.getRequestURI());
@@ -37,6 +41,6 @@ public class OAuthLoginFailureHandler implements AuthenticationFailureHandler {
         // objectMapper.writeValue(response.getOutputStream(), result);
 
         //OAuth는 브라우저 리다이렉트 기반이므로 에러 발생 시 프론트 로그인 페이지로 리다이렉트
-        response.sendRedirect("/login?error=oauth_failed");
+        response.sendRedirect(frontendUrl + "/login?error=oauth_failed");
     }
 }

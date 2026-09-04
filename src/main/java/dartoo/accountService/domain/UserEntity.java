@@ -45,6 +45,10 @@ public class UserEntity {
     private Boolean passwordSet = false;
 
     @Column(nullable = false)
+    @Builder.Default
+    private Boolean emailActivated = false;
+
+    @Column(nullable = false)
     private String nickname;
 
     private LocalDate birthday;
@@ -124,5 +128,9 @@ public class UserEntity {
         this.plan = plan;
         this.planStatus = status;
         this.planExpireAt = expireAt;
+    }
+
+    public void activateEmail() {
+        this.emailActivated = true;
     }
 }

@@ -3,6 +3,7 @@ package dartoo.accountService.config;
 import dartoo.accountService.domain.*;
 import dartoo.accountService.domain.enums.*;
 import dartoo.accountService.dto.core.enums.PlanDuration;
+import dartoo.accountService.repository.EmailVerificationTokenRepository;
 import dartoo.accountService.repository.UserEntityRepository;
 import dartoo.accountService.repository.core.UserCorpBookmarkRepository;
 import dartoo.accountService.repository.core.UserNotificationRepository;
@@ -31,6 +32,9 @@ public class LocalSeedConfig {
     private static final String FREE_USER_PASSWORD = "testuser1";
     private static final String PREMIUM_USER_EMAIL = "premiumUser@gmail.com";
     private static final String PREMIUM_USER_PASSWORD = "testuser2";
+    private static final String UNVERIFIED_USER_EMAIL = "unverifieduser@gmail.com";
+    private static final String UNVERIFIED_USER_PASSWORD = "testuser3";
+    private static final String EXPIRED_TOKEN = "seed-expired-activation-token";
 
     private final PasswordEncoder passwordEncoder;
 
@@ -39,6 +43,7 @@ public class LocalSeedConfig {
 
     //repository 목록
     private final UserEntityRepository userEntityRepository;
+    private final EmailVerificationTokenRepository emailVerificationTokenRepository;
 
     private final UserPlanRepository userPlanRepository;
     private final UserCorpBookmarkRepository userCorpBookmarkRepository;
@@ -68,7 +73,8 @@ public class LocalSeedConfig {
                 PlanStatus.EXPIRED,
                 null,
                 Gender.MALE,
-                LocalDate.of(2000,11,16)
+                LocalDate.of(2000,11,16),
+                true
         );
         var premiumUser = createUser(
                 PREMIUM_USER_EMAIL,
@@ -79,17 +85,36 @@ public class LocalSeedConfig {
                 PlanStatus.ACTIVE,
                 Instant.now().plusSeconds(3600*24*30),
                 Gender.FEMALE,
-                LocalDate.of(2000,11,16)
+                LocalDate.of(2000,11,16),
+                true
         );
-        setPreference(freeUser); setPreference(premiumUser);
-        setAgreed(freeUser); setAgreed(premiumUser);
+        var unverifiedUser = createUser(
+                UNVERIFIED_USER_EMAIL,
+                UNVERIFIED_USER_PASSWORD,
+                "I'mUnverified",
+                Role.USER,
+                PlanType.FREE,
+                PlanStatus.EXPIRED,
+                null,
+                Gender.MALE,
+                LocalDate.of(2000,11,16),
+                false
+        );
+        setPreference(freeUser); setPreference(premiumUser); setPreference(unverifiedUser);
+        setAgreed(freeUser); setAgreed(premiumUser); setAgreed(unverifiedUser);
 
         setPlanHistory(freeUser); setPlanHistory(premiumUser);
         setBookmark(freeUser); setBookmark(premiumUser);
         setNotification(freeUser); setNotification(premiumUser);
         setSearchHistory(freeUser); setSearchHistory(premiumUser);
-        log.info("더미데이터 생성 완료.\n무료 사용자 id = {}\n무료 사용자 비밀번호 = {}\n프리미엄 사용자 id = {}\n프리미엄 사용자 비밀번호 = {}\n"
-        ,FREE_USER_EMAIL,FREE_USER_PASSWORD,PREMIUM_USER_EMAIL,PREMIUM_USER_PASSWORD);
+
+        seedExpiredToken();
+
+        log.info("더미데이터 생성 완료.\n무료 사용자 id = {}\n무료 사용자 비밀번호 = {}\n프리미엄 사용자 id = {}\n프리미엄 사용자 비밀번호 = {}\n미인증 사용자 id = {}\n미인증 사용자 비밀번호 = {}\n만료 토큰 (에러 케이스 테스트용) = {}\n",
+                FREE_USER_EMAIL, FREE_USER_PASSWORD,
+                PREMIUM_USER_EMAIL, PREMIUM_USER_PASSWORD,
+                UNVERIFIED_USER_EMAIL, UNVERIFIED_USER_PASSWORD,
+                EXPIRED_TOKEN);
     }
 
     private void setSearchHistory(UserEntity user) {
@@ -171,6 +196,19 @@ public class LocalSeedConfig {
         userPlanRepository.save(plan);
     }
 
+    private void seedExpiredToken() {
+        if (emailVerificationTokenRepository.findByTokenAndPurpose(EXPIRED_TOKEN, TokenPurpose.ACTIVATION).isPresent()) {
+            return;
+        }
+        EmailVerificationToken token = EmailVerificationToken.builder()
+                .email(UNVERIFIED_USER_EMAIL)
+                .token(EXPIRED_TOKEN)
+                .purpose(TokenPurpose.ACTIVATION)
+                .expiredAt(Instant.now().minusSeconds(3600))
+                .build();
+        emailVerificationTokenRepository.save(token);
+    }
+
     //사용자 더미데이터 생성
     private UserEntity createUser(
             String email,
@@ -181,7 +219,8 @@ public class LocalSeedConfig {
             PlanStatus planStatus,
             Instant planExpireAt,
             Gender gender,
-            LocalDate birthday
+            LocalDate birthday,
+            boolean emailActivated
     ) {
         return userEntityRepository.findByUserEmail(email)
                 .orElseGet(() -> {
@@ -189,6 +228,7 @@ public class LocalSeedConfig {
                             .userEmail(email)
                             .password(passwordEncoder.encode(rawPassword))
                             .passwordSet(true)
+                            .emailActivated(emailActivated)
                             .nickname(nickname)
                             .role(role)
                             .gender(gender)
@@ -206,9 +246,9 @@ public class LocalSeedConfig {
         UserAgreed agreed = UserAgreed.builder()
                 .user(user)
                 .privacyAgreed(true)
-                .privacyVersion("1.0.0")
+                .privacyVersion("0.0.0")
                 .tosAgreed(true)
-                .tosVersion("1.0.0")
+                .tosVersion("0.0.0")
                 .marketingAgreed(false)
                 .build();
         user.attachAgreed(agreed);

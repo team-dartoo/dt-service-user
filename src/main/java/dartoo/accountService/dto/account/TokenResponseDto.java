@@ -13,4 +13,5 @@ public class TokenResponseDto {
     private String refreshToken;
     private Long refreshTokenTtl;
     private Boolean isPasswordSet;
+    private Boolean requiresTermsConsent;
 }

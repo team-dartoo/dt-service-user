@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<!--
+    =====================================================================
+
+    이 파일은 Thymeleaf 템플릿 엔진이 사용하는 이메일 HTML입니다.
+    서버에서 렌더링되어 완성된 HTML이 이메일로 발송되므로,
+    이 파일 자체가 사용자에게 전달되지는 않습니다.
+
+    디자인 수정 시 주의사항:
+    - th:text, th:href 속성 → 서버가 실제 값으로 교체하는 부분입니다. 건드리지 마세요.
+    - 각 th:* 속성 옆의 일반 속성(href, 태그 내용 등) → 브라우저에서 미리보기용 더미값입니다.
+      실제 이메일 발송 시에는 th:* 속성의 값으로 덮어씌워집니다.
+    - 이메일 클라이언트는 Flexbox/Grid를 지원하지 않아 <table> 기반 레이아웃을 사용합니다.
+    - 스타일은 반드시 inline style로 작성해야 Gmail 등에서 정상 표시됩니다.
+
+    서버에서 주입하는 변수 목록:
+    - activationLink : 계정 활성화 URL (예: https://dartoo.kr/email-activate?token=xxxxx)
+    - expireMinutes  : 링크 유효 시간 (분 단위 숫자, 예: 30)
+    =====================================================================
+-->
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>Dartoo 계정 활성화</title>
+</head>
+<body style="font-family: Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: none; width: 100% !important; height: 100%; line-height: 1.6em; background-color: #f6f6f6; margin: 0; padding: 0;">
+
+<table class="body-wrap" style="font-family: Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; width: 100%; background-color: #f6f6f6; margin: 0; padding: 20px;">
+    <tr>
+        <td></td>
+        <td class="container" width="600" style="display: block !important; max-width: 600px !important; clear: both !important; margin: 0 auto;">
+            <div class="content" style="max-width: 600px; display: block; margin: 0 auto; padding: 20px;">
+                <table class="main" width="100%" cellpadding="0" cellspacing="0" style="border-radius: 3px; background-color: #ffffff; border: 1px solid #e9e9e9;">
+                    <tr>
+                        <td class="content-wrap" style="padding: 30px;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+
+                                <tr>
+                                    <td class="content-block" style="padding: 0 0 20px;">
+                                        <h2 style="font-family: Helvetica, Arial, sans-serif; line-height: 1.2em; color: #000000; font-weight: 400; margin: 0 0 20px; font-size: 24px;">
+                                            Dartoo 계정 활성화
+                                        </h2>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td class="content-block" style="padding: 0 0 20px;">
+                                        안녕하세요.
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td class="content-block" style="padding: 0 0 20px;">
+                                        Dartoo 계정을 활성화하려면 아래 버튼을 클릭하세요.
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td class="content-block" style="padding: 0 0 20px;">
+                                        <!--
+                                            [변수] expireMinutes
+                                            - 서버에서 주입: 링크 유효 시간 (분 단위, 예: 30)
+                                            - th:text="${expireMinutes}" 가 태그 안의 "30"을 실제 값으로 교체합니다.
+                                        -->
+                                        이 링크는 <strong th:text="${expireMinutes}">30</strong>분 동안 유효합니다.
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td class="content-block" style="padding: 0 0 20px;">
+                                        <!--
+                                            [변수] activationLink
+                                            - 서버에서 주입: 계정 활성화 URL (예: https://dartoo.kr/email-activate?token=xxxxx)
+                                            - th:href="${activationLink}" 가 href의 더미값을 실제 URL로 교체합니다.
+                                            - href 안의 "http://localhost:8080/..." 는 브라우저 미리보기용 더미값입니다.
+                                        -->
+                                        <a th:href="${activationLink}"
+                                           href="http://localhost:8080/api/auth/email/activate?token=sample"
+                                           class="btn-primary"
+                                           style="text-decoration: none; color: #ffffff; background-color: #348eda; border: solid #348eda; border-width: 10px 20px; line-height: 2em; font-weight: bold; text-align: center; cursor: pointer; display: inline-block; border-radius: 5px;">
+                                            계정 활성화하기
+                                        </a>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td class="content-block" style="padding: 0 0 20px;">
+                                        버튼이 동작하지 않는다면 아래 링크를 브라우저에 복사해서 접속하세요.
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <!--
+                                        [변수] activationLink (재사용)
+                                        - th:text="${activationLink}" 가 태그 안의 더미 텍스트를 실제 URL로 교체합니다.
+                                        - 태그 안의 "http://localhost:8080/..." 텍스트는 브라우저 미리보기용 더미값입니다.
+                                    -->
+                                    <td class="content-block"
+                                        style="padding: 0 0 20px; word-break: break-all; color: #666666; font-size: 13px;"
+                                        th:text="${activationLink}">
+                                        http://localhost:8080/api/auth/email/activate?token=sample
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td class="content-block" style="padding: 0;">
+                                        본인이 요청하지 않았다면 이 이메일은 무시해도 됩니다.
+                                    </td>
+                                </tr>
+
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="footer" style="width: 100%; clear: both; color: #999999; padding: 20px;">
+                    <table width="100%">
+                        <tr>
+                            <td class="aligncenter content-block" style="text-align: center; color: #999999; font-size: 12px;">
+                                © Dartoo
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </td>
+        <td></td>
+    </tr>
+</table>
+
+</body>
+</html>

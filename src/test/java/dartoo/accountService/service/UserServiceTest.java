@@ -4,6 +4,7 @@ import dartoo.accountService.domain.UserAgreed;
 import dartoo.accountService.domain.UserPreference;
 import dartoo.accountService.domain.enums.Gender;
 import dartoo.accountService.domain.enums.Role;
+import dartoo.accountService.domain.enums.TokenPurpose;
 import dartoo.accountService.domain.UserEntity;
 import dartoo.accountService.dto.account.ChangePasswordDto;
 import dartoo.accountService.dto.account.UserRequestDto;
@@ -11,6 +12,7 @@ import dartoo.accountService.dto.account.UserResponseDto;
 import dartoo.accountService.error.ApiException;
 import dartoo.accountService.repository.*;
 import dartoo.accountService.repository.core.UserCorpBookmarkRepository;
+import dartoo.accountService.service.EmailVerificationService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,6 +58,8 @@ public class UserServiceTest {
     UserPreferenceRepository userPreferenceRepository;
     @Mock
     UserCorpBookmarkRepository userCorpBookmarkRepository;
+    @Mock
+    EmailVerificationService emailVerificationService;
 
     //가짜 객체 주입 후 테스트
     @InjectMocks
@@ -430,6 +434,125 @@ public class UserServiceTest {
         then(refreshTokenRepository).should(never()).deleteAllByUserEntity(testUser);
         then(userOAuthRepository).should(never()).deleteAllByUserEntity(testUser);
         then(userEntityRepository).should(never()).deleteByUserEmail(testUser.getUserEmail());
+    }
+
+    @Test
+    @DisplayName("회원가입 성공 시 인증 이메일 발송")
+    void addUser_sendsActivationEmail() {
+        // given
+        UserRequestDto dto = new UserRequestDto();
+        dto.setUserEmail("newUser@test.com");
+        dto.setPassword("newUserPassword");
+        dto.setNickname("newUserNickname");
+
+        given(userEntityRepository.existsByUserEmail("newUser@test.com")).willReturn(false);
+        given(passwordEncoder.encode("newUserPassword")).willReturn("encodedPassword");
+        given(userEntityRepository.save(any(UserEntity.class))).willAnswer(invocation -> {
+            UserEntity u = invocation.getArgument(0);
+            return UserEntity.builder().id(1L).userEmail(u.getUserEmail()).password(u.getPassword()).role(Role.USER).build();
+        });
+        // when
+        userService.addUser(dto);
+        // then
+        then(emailVerificationService).should().issueActivationEmail("newUser@test.com");
+    }
+
+    @Test
+    @DisplayName("가입 후 인증 이메일 발송 실패해도 가입은 완료된다")
+    void addUser_emailSendFailed_registrationSucceeds() {
+        // given
+        UserRequestDto dto = new UserRequestDto();
+        dto.setUserEmail("newUser@test.com");
+        dto.setPassword("newUserPassword");
+        dto.setNickname("newUserNickname");
+
+        given(userEntityRepository.existsByUserEmail("newUser@test.com")).willReturn(false);
+        given(passwordEncoder.encode("newUserPassword")).willReturn("encodedPassword");
+        given(userEntityRepository.save(any(UserEntity.class))).willAnswer(invocation -> {
+            UserEntity u = invocation.getArgument(0);
+            return UserEntity.builder().id(1L).userEmail(u.getUserEmail()).password(u.getPassword()).role(Role.USER).build();
+        });
+        doThrow(new RuntimeException("SMTP 오류")).when(emailVerificationService).issueActivationEmail(any());
+        // when
+        Long userId = userService.addUser(dto);
+        // then
+        assertThat(userId).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("이메일 인증 완료 처리 성공")
+    void markEmailActivated_success() {
+        // given
+        given(userEntityRepository.findByUserEmail("test@test.com")).willReturn(Optional.of(testUser));
+        // when
+        userService.markEmailActivated("test@test.com");
+        // then
+        assertThat(testUser.getEmailActivated()).isTrue();
+    }
+
+    @Test
+    @DisplayName("이메일 인증 완료 처리 실패 - 존재하지 않는 이메일이면 USER_NOT_FOUND 예외")
+    void markEmailActivated_userNotFound() {
+        // given
+        given(userEntityRepository.findByUserEmail("notfound@test.com")).willReturn(Optional.empty());
+        // when, then
+        assertThatThrownBy(() -> userService.markEmailActivated("notfound@test.com"))
+                .isInstanceOf(ApiException.class)
+                .hasFieldOrPropertyWithValue("errorCode", USER_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("비밀번호 재설정 이메일 요청 - 자체 가입 계정이면 이메일 발송")
+    void requestPasswordReset_sendsEmail_selfAccount() {
+        // given
+        given(userEntityRepository.findByUserEmail("test@test.com")).willReturn(Optional.of(testUser));
+        // when
+        userService.requestPasswordReset("test@test.com");
+        // then
+        then(emailVerificationService).should().sendPasswordResetEmail("test@test.com");
+    }
+
+    @Test
+    @DisplayName("비밀번호 재설정 이메일 요청 - 존재하지 않는 이메일이면 예외 없이 종료")
+    void requestPasswordReset_doesNothing_userNotFound() {
+        // given
+        given(userEntityRepository.findByUserEmail("notfound@test.com")).willReturn(Optional.empty());
+        // when
+        userService.requestPasswordReset("notfound@test.com");
+        // then
+        then(emailVerificationService).should(never()).sendPasswordResetEmail(any());
+    }
+
+    @Test
+    @DisplayName("비밀번호 재설정 이메일 요청 - OAuth 전용 계정(password null)이면 이메일 미발송")
+    void requestPasswordReset_doesNothing_oauthAccount() {
+        // given
+        UserEntity oauthUser = UserEntity.builder()
+                .userEmail("oauth@test.com")
+                .password(null)
+                .passwordSet(false)
+                .role(Role.USER)
+                .build();
+        given(userEntityRepository.findByUserEmail("oauth@test.com")).willReturn(Optional.of(oauthUser));
+        // when
+        userService.requestPasswordReset("oauth@test.com");
+        // then
+        then(emailVerificationService).should(never()).sendPasswordResetEmail(any());
+    }
+
+    @Test
+    @DisplayName("비밀번호 재설정 확인 성공 - 비밀번호 변경 + 리프레시 토큰 전체 삭제")
+    void confirmPasswordReset_success() {
+        // given
+        given(emailVerificationService.verifyToken("valid-token", TokenPurpose.RESET_PASSWORD))
+                .willReturn("test@test.com");
+        given(userEntityRepository.findByUserEmail("test@test.com")).willReturn(Optional.of(testUser));
+        given(passwordEncoder.encode("newPassword")).willReturn("newEncodedPassword");
+        // when
+        userService.confirmPasswordReset("valid-token", "newPassword");
+        // then
+        assertThat(testUser.getPassword()).isEqualTo("newEncodedPassword");
+        then(refreshTokenRepository).should().deleteAllByUserEntity(testUser);
     }
 
     // getSessionEmail() 관련 SecurityContext Mock 헬퍼 메서드
